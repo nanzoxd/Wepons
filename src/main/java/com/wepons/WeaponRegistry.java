@@ -275,6 +275,7 @@ public final class WeaponRegistry {
         meta.lore(lore(w));
         meta.setUnbreakable(true);
         meta.setCustomModelData(w.cmd);
+        if (w.worn) wornNoArmorLayer(meta);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         w.enchants.forEach((ench, lvl) -> meta.addEnchant(ench, lvl, true));
         if (w.swordStats) {
@@ -301,5 +302,17 @@ public final class WeaponRegistry {
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /**
+     * Golden helmet showed the vanilla gold armor when worn because the item still had the gold
+     * armor asset. Equippable with no asset id = no armor layer, so the game draws the item's own
+     * model (the crown, via its "head" display) on the player's head instead.
+     */
+    private static void wornNoArmorLayer(ItemMeta meta) {
+        var eq = meta.getEquippable();
+        eq.setSlot(org.bukkit.inventory.EquipmentSlot.HEAD);
+        eq.setModel(null);
+        meta.setEquippable(eq);
     }
 }

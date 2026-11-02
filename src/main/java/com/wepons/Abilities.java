@@ -18,7 +18,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.EvokerFangs;
 import org.bukkit.entity.ItemDisplay;
-import org.bukkit.GameMode;
+import org.bukkit.entity.GameMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Ravager;
@@ -519,7 +519,38 @@ public final class Abilities implements Listener {
         return end != null && end > System.currentTimeMillis();
     }
 
+
+    // ==================================================================
+    // Shadow Blade effects (copied from AltarSMP ShadowBladeListener)
+    // Enderman teleport + player sweep sounds, SMOKE + CRIT + SWEEP_ATTACK particles
+    // ==================================================================
+
+    private void shadowSlash(Player p, Location at) {
+        World w = at.getWorld();
+        w.playSound(at, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.8f);
+        w.playSound(at, Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.5f);
+        Location c = at.clone().add(0, 1, 0);
+        Vector look = p.getEyeLocation().getDirection().setY(0);
+        if (look.lengthSquared() == 0) look = new Vector(0, 0, 1);
+        look.normalize();
+        for (int i = -1; i <= 1; i++) {
+            w.spawnParticle(Particle.SWEEP_ATTACK, c.clone().add(look.clone().rotateAroundY(i * 0.6).multiply(1.2)), 1, 0, 0, 0, 0);
+        }
+        w.spawnParticle(Particle.SMOKE, c, 12, 0.4, 0.5, 0.4, 0.02);
+        w.spawnParticle(Particle.CRIT, c, 8, 0.4, 0.5, 0.4, 0.2);
+    }
+
+    private void shadowCloak(Player p) {
+        World w = p.getWorld();
+        Location l = p.getLocation();
+        w.playSound(l, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
+        w.playSound(l, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 0.8f);
+        w.spawnParticle(Particle.SMOKE, l.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.05);
+        w.spawnParticle(Particle.SWEEP_ATTACK, l.clone().add(0, 1, 0), 3, 0.5, 0.2, 0.5, 0);
+    }
+
     private boolean bulwark(Player p) {
+        shadowCloak(p);
         give(p, PotionEffectType.RESISTANCE, 80, 3);
         give(p, PotionEffectType.ABSORPTION, 160, 1);
         p.getWorld().playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1f);
@@ -706,6 +737,7 @@ public final class Abilities implements Listener {
 
         Weapon w = reg.of(attacker.getInventory().getItemInMainHand());
         if (w == null || !(e.getEntity() instanceof LivingEntity victim)) return;
+        if (w.id.equals("resistance")) shadowSlash(attacker, victim.getLocation());
         for (Ability a : w.abilities) {
             if (a.trigger() != Trigger.HIT) continue;
             switch (a.key()) {
@@ -881,11 +913,28 @@ public final class Abilities implements Listener {
         hitCounts.put(key, 0);
 
         World world = victim.getWorld();
-        ItemDisplay trident = world.spawn(victim.getLocation().add(0, 12, 0), ItemDisplay.class, d -> {
-            d.setItemStack(new ItemStack(Material.TRIDENT));
+        // Falling trident: uses the pack's falling_trident model (custom_model_data 9125),
+        // stays point-down and faces the viewer, drops with an End Rod / Enchant trail
+        // like the Paladin Axe slam, then hits with a dirt shockwave in impact().
+        ItemStack tridentItem = new ItemStack(Material.TRIDENT);
+        ItemMeta tm = tridentItem.getItemMeta();
+        tm.setCustomModelData(9125);
+        tridentItem.setItemMeta(tm);
+
+        final double height = 10.0;
+        ItemDisplay trident = world.spawn(victim.getLocation().add(0, height, 0), ItemDisplay.class, d -> {
+            d.setItemStack(tridentItem);
             d.setPersistent(false);
+            d.setBillboard(org.bukkit.entity.Display.Billboard.VERTICAL);
+            d.setTransformation(new org.bukkit.util.Transformation(
+                    new org.joml.Vector3f(0, 0, 0),
+                    new org.joml.AxisAngle4f(0, 0, 0, 1),
+                    new org.joml.Vector3f(2.2f, 2.2f, 2.2f),
+                    new org.joml.AxisAngle4f(0, 0, 0, 1)));
+            d.setTeleportDuration(1);
         });
         world.playSound(victim.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1f, 1.2f);
+        world.playSound(victim.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 0.8f, 0.7f);
 
         new BukkitRunnable() {
             int t = 0;
@@ -898,11 +947,19 @@ public final class Abilities implements Listener {
                     cancel();
                     return;
                 }
-                Location at = victim.getLocation().add(0, 12 - t * 1.5, 0);
+                // accelerates like a real drop: slow start, fast finish
+                double progress = Math.min(1.0, (t * t) / 49.0);
+                Location ground = victim.getLocation();
+                Location at = ground.clone().add(0, height * (1.0 - progress) + 0.5, 0);
                 trident.teleport(at);
-                at.getWorld().spawnParticle(Particle.FLAME, at, 6, 0.1, 0.1, 0.1, 0.02);
 
-                if (t >= 8) {
+                // glowing column marking the fall
+                for (double y = 0; y < height * (1.0 - progress) + 1; y += 1.0) {
+                    world.spawnParticle(Particle.END_ROD, ground.clone().add(0, y + 0.5, 0), 1, 0.1, 0.05, 0.1, 0);
+                }
+                world.spawnParticle(Particle.ENCHANT, at, 10, 0.4, 0.4, 0.4, 0.5);
+
+                if (t >= 7) {
                     trident.remove();
                     cancel();
                     impact(p, victim);
@@ -925,6 +982,12 @@ public final class Abilities implements Listener {
         world.playSound(at, Sound.ITEM_TRIDENT_HIT_GROUND, 1f, 0.8f);
         world.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 1.3f);
         world.spawnParticle(Particle.EXPLOSION, at.clone().add(0, 1, 0), 1);
+        for (int i = 0; i < 16; i++) {
+            double ang = i * Math.PI / 8;
+            world.spawnParticle(Particle.BLOCK, at.clone().add(Math.cos(ang) * 2, 0.2, Math.sin(ang) * 2),
+                    6, 0.2, 0.1, 0.2, 0.05, Material.DIRT.createBlockData());
+        }
+        world.playSound(at, Sound.ENTITY_RAVAGER_ROAR, 0.4f, 1.6f);
 
         for (Entity en : world.getNearbyEntities(at, 3, 2, 3)) {
             if (en instanceof LivingEntity le && le != p) le.setFireTicks(100);
