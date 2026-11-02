@@ -1,0 +1,26 @@
+name: Wepons
+version: 1.0.0
+main: com.wepons.Wepons
+api-version: '1.21'
+description: Custom weapons with abilities, a weapon GUI and a holder tracker.
+author: Wepons
+
+commands:
+  wepons:
+    description: Open the weapons menu
+    usage: /wepons
+    aliases: [weapons]
+    permission: wepons.use
+  holder:
+    description: See who holds each weapon
+    usage: /holder
+    aliases: [holders]
+    permission: wepons.holder
+
+permissions:
+  wepons.use:
+    description: Open /wepons and take weapons from it
+    default: op
+  wepons.holder:
+    description: Open /holder
+    default: true

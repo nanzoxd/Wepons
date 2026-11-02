@@ -1,0 +1,6 @@
+# Players holding a weapon glow (like the original script).
+glow-when-held: true
+
+# The Ban Hammer runs "ban <name>" from the console when it hits a player.
+# Set to false to disable the ban and keep the hammer as a normal weapon.
+ban-hammer-enabled: true
