@@ -18,7 +18,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.EvokerFangs;
 import org.bukkit.entity.ItemDisplay;
-import org.bukkit.GameMode;
+import org.bukkit.entity.GameMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Ravager;
@@ -31,6 +31,8 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -63,6 +65,7 @@ public final class Abilities implements Listener {
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
     private final Map<UUID, Long> lastFire = new HashMap<>();
     private final Map<UUID, Long> frozenUntil = new HashMap<>();
+    private final Map<UUID, Long> rootedUntil = new HashMap<>();
     private final Map<UUID, Long> novaUntil = new HashMap<>();
     private final Map<String, Long> ultUntil = new HashMap<>();
     private final Map<String, Integer> hitCounts = new HashMap<>();
@@ -519,7 +522,40 @@ public final class Abilities implements Listener {
         return end != null && end > System.currentTimeMillis();
     }
 
+
+    // ==================================================================
+    // Shadow Blade effects (copied from AltarSMP ShadowBladeListener)
+    // Enderman teleport + player sweep sounds, SMOKE + CRIT + SWEEP_ATTACK particles
+    // ==================================================================
+
+    private void shadowSlash(Player p, Location at) {
+        World w = at.getWorld();
+        Location c = at.clone().add(0, 1, 0);
+        w.playSound(at, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+        w.playSound(at, Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.5f);
+        w.spawnParticle(Particle.SWEEP_ATTACK, c, 1, 0, 0, 0, 0);
+        w.spawnParticle(Particle.SMOKE, c, 20, 0.3, 0.5, 0.3, 0.05);
+    }
+
+    /** AltarSMP sweep hit: one SWEEP_ATTACK particle on the target and the player sweep sound (pitch 1.5). */
+    private void sweepHit(LivingEntity victim) {
+        if (!plugin.getConfig().getBoolean("sweep-hit-effects", true)) return;
+        World w = victim.getWorld();
+        w.playSound(victim.getLocation(), Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+        w.spawnParticle(Particle.SWEEP_ATTACK, victim.getLocation().add(0, 1, 0), 1, 0, 0, 0, 0);
+    }
+
+    private void shadowCloak(Player p) {
+        World w = p.getWorld();
+        Location l = p.getLocation();
+        w.playSound(l, Sound.ENTITY_ENDERMAN_TELEPORT, 1f, 0.5f);
+        w.playSound(l, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1f, 1.5f);
+        w.spawnParticle(Particle.SMOKE, l.clone().add(0, 1, 0), 40, 0.4, 0.8, 0.4, 0.05);
+        w.spawnParticle(Particle.SWEEP_ATTACK, l.clone().add(0, 1, 0), 3, 0.5, 0.2, 0.5, 0);
+    }
+
     private boolean bulwark(Player p) {
+        shadowCloak(p);
         give(p, PotionEffectType.RESISTANCE, 80, 3);
         give(p, PotionEffectType.ABSORPTION, 160, 1);
         p.getWorld().playSound(p.getLocation(), Sound.ITEM_SHIELD_BLOCK, 0.8f, 1f);
@@ -706,6 +742,8 @@ public final class Abilities implements Listener {
 
         Weapon w = reg.of(attacker.getInventory().getItemInMainHand());
         if (w == null || !(e.getEntity() instanceof LivingEntity victim)) return;
+        if (w.id.equals("resistance")) shadowSlash(attacker, victim.getLocation());
+        else sweepHit(victim);
         for (Ability a : w.abilities) {
             if (a.trigger() != Trigger.HIT) continue;
             switch (a.key()) {
@@ -762,6 +800,8 @@ public final class Abilities implements Listener {
         victim.setVelocity(new Vector(0, 0, 0));
         victim.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 60, 7, false, true, true));
         victim.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST, 60, 128, false, false, true));
+        root(victim, 60); // really pinned for 3 seconds, knockback and jumping included
+        if (victim instanceof Player vp) vp.sendActionBar(Component.text("Trapped in fangs", w.color));
 
         Location at = victim.getLocation();
         World world = at.getWorld();
@@ -785,6 +825,53 @@ public final class Abilities implements Listener {
                 victim.getWorld().spawnParticle(Particle.CRIT, victim.getLocation().add(0, 2.2, 0), 4, 0.2, 0.1, 0.2, 0.05);
             }
         }.runTaskTimer(plugin, 0L, 4L);
+    }
+
+    /** Pins the target in place for the given ticks: no walking, no jumping, no pearl or chorus escapes. */
+    private void root(LivingEntity v, int ticks) {
+        if (v instanceof Player pl) {
+            rootedUntil.put(pl.getUniqueId(), System.currentTimeMillis() + ticks * 50L);
+        } else if (v instanceof org.bukkit.entity.Mob m && m.hasAI()) {
+            m.setAI(false);
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                if (m.isValid()) m.setAI(true);
+            }, ticks);
+        }
+    }
+
+    private boolean isRooted(Player p) {
+        Long end = rootedUntil.get(p.getUniqueId());
+        if (end == null) return false;
+        if (end <= System.currentTimeMillis()) {
+            rootedUntil.remove(p.getUniqueId());
+            return false;
+        }
+        return true;
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRootedMove(PlayerMoveEvent e) {
+        Player p = e.getPlayer();
+        if (!isRooted(p)) return;
+        Location from = e.getFrom();
+        Location to = e.getTo();
+        if (to == null) return;
+        // looking around and falling are still allowed
+        if (from.getX() == to.getX() && from.getZ() == to.getZ() && to.getY() <= from.getY()) return;
+        Location pinned = from.clone();
+        pinned.setYaw(to.getYaw());
+        pinned.setPitch(to.getPitch());
+        if (to.getY() < from.getY()) pinned.setY(to.getY());
+        e.setTo(pinned);
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onRootedTeleport(PlayerTeleportEvent e) {
+        if (!isRooted(e.getPlayer())) return;
+        PlayerTeleportEvent.TeleportCause c = e.getCause();
+        if (c == PlayerTeleportEvent.TeleportCause.ENDER_PEARL || c == PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) {
+            e.setCancelled(true);
+        }
     }
 
     private void frostStrike(Player p, LivingEntity victim) {
@@ -881,11 +968,31 @@ public final class Abilities implements Listener {
         hitCounts.put(key, 0);
 
         World world = victim.getWorld();
-        ItemDisplay trident = world.spawn(victim.getLocation().add(0, 12, 0), ItemDisplay.class, d -> {
-            d.setItemStack(new ItemStack(Material.TRIDENT));
+        // Falling trident: uses the pack's falling_trident model (custom_model_data 9125),
+        // stays point-down and faces the viewer, drops with an End Rod / Enchant trail
+        // like the Paladin Axe slam, then hits with a dirt shockwave in impact().
+        ItemStack tridentItem = new ItemStack(Material.TRIDENT);
+        ItemMeta tm = tridentItem.getItemMeta();
+        tm.setCustomModelData(9125);
+        tridentItem.setItemMeta(tm);
+
+        final double height = 12.0;
+        final int fallTicks = 20; // 1 second, slow enough to see
+        ItemDisplay trident = world.spawn(victim.getLocation().add(0, height, 0), ItemDisplay.class, d -> {
+            d.setItemStack(tridentItem);
             d.setPersistent(false);
+            d.setBillboard(org.bukkit.entity.Display.Billboard.VERTICAL);
+            d.setTransformation(new org.bukkit.util.Transformation(
+                    new org.joml.Vector3f(0, 0, 0),
+                    new org.joml.AxisAngle4f(0, 0, 0, 1),
+                    new org.joml.Vector3f(1.6f, 1.6f, 1.6f),
+                    new org.joml.AxisAngle4f(0, 0, 0, 1)));
+            d.setTeleportDuration(2);
+            d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
+            d.setViewRange(2.0f);
         });
         world.playSound(victim.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1f, 1.2f);
+        world.playSound(victim.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 0.8f, 0.7f);
 
         new BukkitRunnable() {
             int t = 0;
@@ -898,11 +1005,19 @@ public final class Abilities implements Listener {
                     cancel();
                     return;
                 }
-                Location at = victim.getLocation().add(0, 12 - t * 1.5, 0);
+                // accelerates like a real drop: slow start, fast finish
+                double progress = Math.min(1.0, (t * t) / (double) (fallTicks * fallTicks));
+                Location ground = victim.getLocation();
+                Location at = ground.clone().add(0, height * (1.0 - progress) + 1.8, 0);
                 trident.teleport(at);
-                at.getWorld().spawnParticle(Particle.FLAME, at, 6, 0.1, 0.1, 0.1, 0.02);
 
-                if (t >= 8) {
+                // glowing column marking the fall
+                for (double y = 0; y < height * (1.0 - progress) + 1; y += 1.0) {
+                    world.spawnParticle(Particle.END_ROD, ground.clone().add(0, y + 0.5, 0), 1, 0.1, 0.05, 0.1, 0);
+                }
+                world.spawnParticle(Particle.ENCHANT, at, 10, 0.4, 0.4, 0.4, 0.5);
+
+                if (t >= fallTicks) {
                     trident.remove();
                     cancel();
                     impact(p, victim);
@@ -925,6 +1040,8 @@ public final class Abilities implements Listener {
         world.playSound(at, Sound.ITEM_TRIDENT_HIT_GROUND, 1f, 0.8f);
         world.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 1.3f);
         world.spawnParticle(Particle.EXPLOSION, at.clone().add(0, 1, 0), 1);
+        shockwave(p, victim, at);
+        world.playSound(at, Sound.ENTITY_RAVAGER_ROAR, 0.4f, 1.6f);
 
         for (Entity en : world.getNearbyEntities(at, 3, 2, 3)) {
             if (en instanceof LivingEntity le && le != p) le.setFireTicks(100);
@@ -947,6 +1064,58 @@ public final class Abilities implements Listener {
                 }
             }
         }.runTaskTimer(plugin, 0L, 4L);
+    }
+
+    /**
+     * AltarSMP Paladin Axe "Earthshatter" shockwave: an orange ring expands 0.8 blocks every 2 ticks up to
+     * 8 blocks while chunks of the ground fly up; everything caught by the ring takes 8 damage and is launched.
+     */
+    private void shockwave(Player owner, LivingEntity victim, Location center) {
+        World world = center.getWorld();
+        world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.5f);
+        world.spawnParticle(Particle.EXPLOSION, center, 3, 0.5, 0.5, 0.5, 0);
+        Material under = center.clone().subtract(0, 0.5, 0).getBlock().getType();
+        final org.bukkit.block.data.BlockData ground =
+                (under.isBlock() && under.isSolid() ? under : Material.DIRT).createBlockData();
+        final Particle.DustOptions dust = new Particle.DustOptions(Color.ORANGE, 1f);
+
+        new BukkitRunnable() {
+            double radius = 0;
+
+            @Override
+            public void run() {
+                if (radius >= 8.0) {
+                    cancel();
+                    return;
+                }
+                radius += 0.8;
+                for (int i = 0; i < 30; i++) {
+                    double a = Math.PI * 2 * i / 30;
+                    world.spawnParticle(Particle.DUST, center.getX() + radius * Math.cos(a), center.getY(),
+                            center.getZ() + radius * Math.sin(a), 1, 0, 0, 0, 0, dust);
+                }
+                for (int i = 0; i < 20; i++) {
+                    double a = Math.random() * Math.PI * 2;
+                    double r = radius * Math.random();
+                    Location loc = new Location(world, center.getX() + r * Math.cos(a), center.getY(),
+                            center.getZ() + r * Math.sin(a));
+                    world.spawnParticle(Particle.BLOCK, loc, 2, 0.1, 0.1, 0.1, 0, ground);
+                }
+                for (Entity en : world.getNearbyEntities(center, radius, 3, radius)) {
+                    if (!(en instanceof LivingEntity le) || le == owner || le == victim
+                            || le instanceof org.bukkit.entity.ArmorStand) continue;
+                    double d = le.getLocation().distance(center);
+                    if (d < radius - 1 || d > radius + 0.5) continue;
+                    internal.add(owner.getUniqueId());
+                    try {
+                        le.damage(8, owner);
+                    } finally {
+                        internal.remove(owner.getUniqueId());
+                    }
+                    le.setVelocity(le.getVelocity().add(new Vector(0, 0.8, 0)));
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
     }
 
     /** Every other player within 30 blocks glows for 10 seconds. */
@@ -977,6 +1146,7 @@ public final class Abilities implements Listener {
         frozenUntil.remove(id);
         novaUntil.remove(id);
         e.getEntity().setFreezeTicks(0);
+        rootedUntil.remove(id);
     }
 
     @EventHandler
@@ -985,6 +1155,7 @@ public final class Abilities implements Listener {
         frozenUntil.remove(id);
         novaUntil.remove(id);
         banLock.remove(id);
+        rootedUntil.remove(id);
         lastFire.remove(id);
         hitCounts.remove(id + ":scythe");
         hitCounts.remove(id + ":freeze");

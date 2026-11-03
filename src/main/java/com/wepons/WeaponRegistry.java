@@ -166,7 +166,7 @@ public final class WeaponRegistry {
                 .ability("riptide", "Riptide Dash", Trigger.RIGHT_CLICK, 0,
                         "Dash like Riptide, no enchantment needed. Use it twice with no cooldown, then wait 60s.")
                 .ability("tridentstrike", "Sky Trident", Trigger.HIT, 0,
-                        "Every 5th hit drops a trident from the sky for 4 hearts and a ring of fire.");
+                        "Every 5th hit drops a trident from the sky for 4 hearts, a ground shockwave and a ring of fire.");
 
         add("monarchcrown", Material.GOLDEN_HELMET, "Monarch Crown", "#FFD700", 9124)
                 .worn()
