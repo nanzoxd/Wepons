@@ -11,6 +11,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
+import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.EquipmentSlotGroup;
 import org.bukkit.inventory.ItemFlag;
@@ -30,11 +31,13 @@ public final class WeaponRegistry {
 
     private final Wepons plugin;
     private final NamespacedKey key;
+    private final NamespacedKey killsKey;
     private final Map<String, Weapon> weapons = new LinkedHashMap<>();
 
     public WeaponRegistry(Wepons plugin) {
         this.plugin = plugin;
         this.key = new NamespacedKey(plugin, "weapon");
+        this.killsKey = new NamespacedKey(plugin, "kills");
         register();
     }
 
@@ -45,135 +48,240 @@ public final class WeaponRegistry {
     private void register() {
         // ---- passive swords ----
         blade("weaving", Material.NETHERITE_SWORD, "Weaving Sword", "#A855F7", 9101)
+                .tag("Spin a web, then wait.")
                 .aura(Particle.WITCH)
-                .passive("Weaving", "Weaving while held.", e(PotionEffectType.WEAVING, 0))
-                .ability("cobwebproc", "Web Snare", Trigger.HIT, 0, "30% chance to trap the target in cobwebs for 4s.");
+                .passive("Weaving while held.", e(PotionEffectType.WEAVING, 0))
+                .proc("cobwebproc", "Web Snare", Trigger.HIT, 0, "30% chance to trap the target in cobwebs for 4s.");
 
         blade("resistance", Material.NETHERITE_SWORD, "Resistance Sword", "#9CA3AF", 9102)
+                .tag("Stand firm. Nothing breaks you.")
                 .aura(Particle.ASH)
-                .passive("Resistance II", "Take less damage while held.", e(PotionEffectType.RESISTANCE, 1))
-                .ability("bulwark", "Bulwark", Trigger.SHIFT_RIGHT, 20, "Gain Resistance IV and Absorption II.");
+                .passive("Resistance II while held.", e(PotionEffectType.RESISTANCE, 1))
+                .one("bulwark", "Bulwark", 20, "Gain Resistance IV and Absorption II.");
 
         blade("speed", Material.NETHERITE_SWORD, "Speed Sword", "#22D3EE", 9103)
+                .tag("Gone before the echo lands.")
                 .aura(Particle.ELECTRIC_SPARK)
-                .passive("Speed I", "Move faster while held.", e(PotionEffectType.SPEED, 0))
-                .ability("windstep", "Wind Step", Trigger.SHIFT_RIGHT, 45, "Gain Speed II for 15s.");
+                .passive("Speed I while held.", e(PotionEffectType.SPEED, 0))
+                .one("windstep", "Wind Step", 45, "Gain Speed II for 15s.");
 
         blade("invisibility", Material.NETHERITE_SWORD, "Invisible Sword", "#E5E7EB", 9104)
+                .tag("You never saw it coming.")
                 .aura(Particle.CLOUD)
-                .passive("Invisibility", "Become invisible while held.", e(PotionEffectType.INVISIBILITY, 0))
-                .ability("vanishstep", "Vanish Step", Trigger.SHIFT_SWAP, 16, "Blink forward and stay invisible.");
+                .passive("Invisibility while held.", e(PotionEffectType.INVISIBILITY, 0))
+                .one("vanishstep", "Vanish Step", 16, "Blink forward and stay invisible.");
 
         blade("regeneration", Material.NETHERITE_SWORD, "Regen Sword", "#FF3B3B", 9105)
+                .tag("Wounds close faster than they open.")
                 .aura(Particle.HEART)
-                .passive("Regeneration I", "Slowly heal while held.", e(PotionEffectType.REGENERATION, 0))
-                .ability("secondwind", "Second Wind", Trigger.SHIFT_RIGHT, 25, "Heal 6 hearts and gain Regeneration III.");
+                .passive("Regeneration I while held.", e(PotionEffectType.REGENERATION, 0))
+                .one("secondwind", "Second Wind", 25, "Heal 6 hearts and gain Regeneration III.");
 
         blade("saturation", Material.NETHERITE_SWORD, "Food Sword", "#FF8A1F", 9106)
+                .tag("A feast in every swing.")
                 .aura(Particle.FLAME)
-                .passive("Saturation", "Never go hungry while held.", e(PotionEffectType.SATURATION, 0))
-                .ability("feast", "Feast", Trigger.SHIFT_RIGHT, 20, "Refill hunger and saturation.");
+                .passive("Never go hungry while held.", e(PotionEffectType.SATURATION, 0))
+                .one("feast", "Feast", 20, "Refill hunger and saturation.");
 
         add("haste", Material.NETHERITE_PICKAXE, "Mining Pickaxe", "#FFD21F", 9107)
+                .tag("Stone is only a suggestion.")
                 .aura(Particle.END_ROD)
                 .enchant(Enchantment.EFFICIENCY, 7)
                 .enchant(Enchantment.FORTUNE, 3)
-                .passive("Efficiency VII", "Mines blocks very fast.")
-                .ability("minetoggle", "Mine Mode", Trigger.SHIFT_RIGHT, 0, "Switch between Fortune III and Silk Touch.");
+                .passive("Efficiency VII: mines blocks very fast.")
+                .one("minetoggle", "Mine Mode", 0, "Switch between Fortune III and Silk Touch.");
 
         blade("strength", Material.NETHERITE_SWORD, "Strength Sword", "#EF4444", 9108)
+                .tag("Might is its own argument.")
                 .aura(Particle.ANGRY_VILLAGER)
-                .passive("Strength I", "Hit harder while held.", e(PotionEffectType.STRENGTH, 0))
-                .ability("berserk", "Berserk", Trigger.SHIFT_RIGHT, 45, "Gain Strength II for 15s.");
+                .passive("Strength I while held.", e(PotionEffectType.STRENGTH, 0))
+                .one("berserk", "Berserk", 45, "Gain Strength II for 15s.");
 
         // ---- active swords ----
         blade("dash", Material.NETHERITE_SWORD, "Dash Sword", "#38BDF8", 9109)
+                .tag("Distance is a choice.")
                 .aura(Particle.SOUL_FIRE_FLAME)
-                .ability("dash", "Dash", Trigger.SHIFT_RIGHT, 8, "Dash forward.")
-                .ability("blink", "Blink", Trigger.SHIFT_SWAP, 14, "Teleport forward through thin walls.");
+                .one("dash", "Dash", 8, "Dash forward.")
+                .two("blink", "Blink", 14, "Teleport forward through thin walls.");
 
         blade("voidfang", Material.NETHERITE_SWORD, "Void Sword", "#A78BFA", 9110)
+                .tag("The void answers its master.")
                 .aura(Particle.PORTAL)
-                .ability("voidslash", "Void Slash", Trigger.SHIFT_RIGHT, 12, "Slash the enemy you look at.")
-                .ability("voidpull", "Void Pull", Trigger.SHIFT_SWAP, 16, "Pull the enemy you look at to you.");
+                .one("voidslash", "Void Slash", 12, "Slash the enemy you look at.")
+                .two("voidpull", "Void Pull", 16, "Pull the enemy you look at to you.");
 
         blade("stormbreaker", Material.NETHERITE_SWORD, "Storm Sword", "#FACC15", 9111)
+                .tag("Thunder follows the blade.")
                 .aura(Particle.END_ROD)
-                .ability("lightning", "Lightning Strike", Trigger.SHIFT_RIGHT, 15, "Call lightning where you look.")
-                .ability("staticfield", "Static Field", Trigger.SHIFT_SWAP, 18, "Slow every enemy nearby.");
+                .one("lightning", "Lightning Strike", 15, "Call lightning where you look.")
+                .two("staticfield", "Static Field", 18, "Slow every enemy nearby.");
 
         blade("freeze", Material.NETHERITE_SWORD, "Frost Sword", "#38E8E0", 9112)
+                .tag("Cold is the last thing they feel.")
                 .aura(Particle.SNOWFLAKE)
-                .ability("freeze", "Frost Strike", Trigger.HIT, 0, "Every 3rd hit freezes a player for 5s.")
-                .ability("frostnova", "Frost Nova", Trigger.SHIFT_SWAP, 20, "Freeze enemies within 6 blocks for 10s.");
+                .proc("freeze", "Frost Strike", Trigger.HIT, 0, "Every 3rd hit freezes a player for 5s.")
+                .one("frostnova", "Frost Nova", 20, "Freeze enemies within 6 blocks for 10s.");
 
         blade("scythe", Material.NETHERITE_SWORD, "Scythe", "#C26A6A", 9113)
+                .tag("The harvest never ends.")
                 .aura(Particle.CRIMSON_SPORE)
-                .ability("summonfangs", "Fang Trap", Trigger.HIT, 30, "Every 5th hit traps the target in fangs for 3s.")
-                .ability("ravagerride", "Ravager Ride", Trigger.SHIFT_SWAP, 40, "Ride a ravager for 15s.");
+                .proc("summonfangs", "Fang Trap", Trigger.HIT, 30, "Every 5th hit traps the target in fangs for 3s.")
+                .one("ravagerride", "Ravager Ride", 40, "Ride a ravager for 15s.");
 
         add("fireshield", Material.SHIELD, "Fire Shield", "#F97316", 9114)
+                .tag("Strike me and burn.")
                 .aura(Particle.FLAME)
-                .ability("flamerebuke", "Flame Rebuke", Trigger.BLOCK, 0, "Attackers are launched back and set on fire.");
+                .proc("flamerebuke", "Flame Rebuke", Trigger.BLOCK, 0, "Attackers are launched back and set on fire.");
 
         // ---- utility weapons ----
         blade("flightsword", Material.NETHERITE_SWORD, "Flight Sword", "#55FF55", 9115)
+                .tag("The sky is just another road.")
                 .aura(Particle.HAPPY_VILLAGER)
-                .ability("flightdash", "Dash", Trigger.SHIFT_RIGHT, 20, "Dash forward at high speed.");
+                .one("flightdash", "Dash", 20, "Dash forward at high speed.");
 
         blade("lightningsword", Material.NETHERITE_SWORD, "Lightning Sword", "#FFFF55", 9116)
+                .tag("Every strike calls the storm.")
                 .aura(Particle.END_ROD)
-                .ability("lightningproc", "Storm Edge", Trigger.HIT, 0, "30% chance to strike the target with lightning.");
+                .proc("lightningproc", "Storm Edge", Trigger.HIT, 0, "30% chance to strike the target with lightning.");
 
         blade("cobwebaxe", Material.NETHERITE_AXE, "Web Axe", "#FF55FF", 9117)
+                .tag("Nothing escapes the web.")
                 .aura(Particle.ENCHANT)
-                .ability("cobwebproc", "Web Snare", Trigger.HIT, 0, "30% chance to trap the target in cobwebs for 4s.");
+                .proc("cobwebproc", "Web Snare", Trigger.HIT, 0, "30% chance to trap the target in cobwebs for 4s.");
 
         blade("gravityaxe", Material.NETHERITE_AXE, "Gravity Axe", "#55FFFF", 9118)
+                .tag("Even the ground lets go.")
                 .aura(Particle.ELECTRIC_SPARK)
-                .ability("gravitypulse", "Gravity Pulse", Trigger.SHIFT_RIGHT, 10, "Lift and blind enemies within 8 blocks.");
+                .one("gravitypulse", "Gravity Pulse", 10, "Lift and blind enemies within 8 blocks.");
 
         add("grapplebow", Material.BOW, "Grapple Bow", "#CC66CC", 9119)
+                .tag("Pulled to the target, always.")
                 .aura(Particle.WITCH)
                 .enchant(Enchantment.POWER, 5)
                 .enchant(Enchantment.INFINITY, 1)
-                .ability("grapplelaunch", "Grapple Launch", Trigger.SHIFT_RIGHT, 10, "Launch yourself forward.");
+                .one("grapplelaunch", "Grapple Launch", 10, "Launch yourself forward.");
 
         add("dashmace", Material.MACE, "Dash Mace", "#FF5555", 9120)
+                .tag("Impact is everything.")
                 .aura(Particle.FLAME)
                 .enchant(Enchantment.DENSITY, 5)
                 .enchant(Enchantment.WIND_BURST, 5)
-                .ability("dashmacedash", "Dash", Trigger.SHIFT_RIGHT, 20, "Dash forward at very high speed.");
+                .one("dashmacedash", "Dash", 20, "Dash forward at very high speed.");
 
         add("banhammer", Material.MACE, "Ban Hammer", "#FF4040", 9121)
+                .tag("The final verdict.")
                 .aura(Particle.ANGRY_VILLAGER)
                 .enchant(Enchantment.DENSITY, 3)
-                .carry("Carry Bonus", "Speed II, Strength II and Glowing while in your inventory.",
+                .carry("Speed II, Strength II and Glowing while in your inventory.",
                         e(PotionEffectType.SPEED, 1), e(PotionEffectType.STRENGTH, 1),
                         e(PotionEffectType.GLOWING, 0), e(PotionEffectType.WEAVING, 0))
-                .ability("banhammer", "Judgement", Trigger.HIT, 40, "Hit a player to ban them.");
+                .proc("banhammer", "Judgement", Trigger.HIT, 40, "Hit a player to ban them.");
 
-        // ---- new weapons ----
+        // ---- more tools ----
         add("smelter", Material.NETHERITE_PICKAXE, "Smelter Pickaxe", "#FF7A1A", 9122)
+                .tag("Ore comes out finished.")
                 .aura(Particle.FLAME)
                 .enchant(Enchantment.EFFICIENCY, 7)
-                .passive("Auto Smelt", "Ores drop smelted with Fortune III. Other blocks drop as if Silk Touch.")
-                .passive("Wide Mine", "Breaks 2 blocks at once.");
+                .passive("Ores drop smelted with Fortune III. Other blocks drop as if Silk Touch.")
+                .passive("Breaks 2 blocks at once.");
 
         blade("jaydentrident", Material.TRIDENT, "Jayden Trident", "#14B8A6", 9123)
+                .tag("Rides the lightning.")
                 .swordStats()
                 .aura(Particle.DRIPPING_WATER)
-                .ability("riptide", "Riptide Dash", Trigger.RIGHT_CLICK, 0,
-                        "Dash like Riptide, no enchantment needed. Use it twice with no cooldown, then wait 60s.")
-                .ability("tridentstrike", "Sky Trident", Trigger.HIT, 0,
-                        "Every 5th hit drops a trident from the sky for 4 hearts, a ground shockwave and a ring of fire.");
+                .proc("tridentstrike", "Sky Trident", Trigger.HIT, 0,
+                        "Every 5th hit drops a trident from the sky for 4 hearts, a ground shockwave and a ring of fire.")
+                .one("riptide", "Riptide Dash", 0,
+                        "Dash like Riptide, no enchantment needed. Use it twice, then wait 60s.");
 
-        add("monarchcrown", Material.GOLDEN_HELMET, "Monarch Crown", "#FFD700", 9124)
+        // ---- crown (helmet) ----
+        add("monarchcrown", Material.NETHERITE_HELMET, "Monarch Crown", "#FFD700", 9124)
+                .kind("CROWN")
+                .tag("Heavy is the head, mighty the king.")
                 .worn()
                 .aura(Particle.WAX_ON)
                 .enchant(Enchantment.PROTECTION, 4)
-                .passive("Royal Might", "Deal 2x damage and gain Speed II while worn.", e(PotionEffectType.SPEED, 1))
-                .ability("royalreveal", "Royal Reveal", Trigger.SHIFT_SWAP, 60, "Every player within 30 blocks glows for 10s.");
+                .passive("Deal 2x damage and gain Speed II while worn.", e(PotionEffectType.SPEED, 1))
+                .one("royalreveal", "Royal Reveal", 60,
+                        "Every player within 30 blocks glows for 10s. Press F with both hands empty.");
+
+        // ---- Relique blades ----
+        blade("fortune_blade", Material.NETHERITE_SWORD, "Fortune Blade", "#FBBF24", 9201)
+                .tag("Luck favors the bold.")
+                .aura(Particle.HAPPY_VILLAGER)
+                .passive("Gain 2x XP while holding the blade.")
+                .one("fortunefeast", "Endless Feast", 60, "Any food that you eat is not consumed.")
+                .two("fortunerolls", "Lucky Strikes", 90, "Your hits gain random damage multipliers.");
+
+        blade("flame_blade", Material.NETHERITE_SWORD, "Flame Blade", "#FF4D1F", 9202)
+                .tag("Born in the heart of the fire.")
+                .aura(Particle.FLAME)
+                .passive("Infinite Fire Resistance while held.", e(PotionEffectType.FIRE_RESISTANCE, 0))
+                .one("flamesweep", "Flame Sweep", 60, "Sets enemies on fire and knocks them away.")
+                .two("flameblast", "Flame Explosion", 90, "Creates a powerful flame explosion.");
+
+        blade("bloom_blade", Material.NETHERITE_SWORD, "Bloom Blade", "#FF1FB4", 9203)
+                .tag("Life blooms where it cuts.")
+                .aura(Particle.CHERRY_LEAVES)
+                .passive("Every 10th hit heals you the damage dealt.")
+                .one("bloomhearts", "Overgrowth", 60, "Temporarily raise yourself to 15 hearts.")
+                .two("bloomwither", "Wilt", 90, "Cap nearby enemies' health temporarily.");
+
+        // ---- Altar SMP S2 legendaries ----
+        blade("ancient_blade", Material.NETHERITE_SWORD, "Ancient Blade", "#22B8CF", 9301)
+                .tag("Carried by the Legendaries of the Deep Dark.")
+                .aura(Particle.SCULK_SOUL)
+                .passive("Deep Connection: +25% Speed while standing on any Sculk block.")
+                .passive("Shift (2 kills): permanent Speed I while held.")
+                .passive("Tightened Grip (4 kills): permanent Strength II while held.")
+                .one("presence", "Presence", 45,
+                        "(3 kills) After the shriek, you have 5s to hit a player. Marked players receive Darkness for 10s and cannot have Absorption.")
+                .two("darkness", "Unyielding Darkness", 60,
+                        "(5 kills) Launch upward, pause, then throw a spinning Sculk Catalyst that spreads Sculk and splits into Sonic Boom bursts.");
+
+        blade("dragonrend", Material.NETHERITE_SWORD, "Dragonrend", "#D946EF", 9302)
+                .tag("Forged from the Ender Dragon's heart.")
+                .aura(Particle.REVERSE_PORTAL)
+                .passive("Looting III and Sweeping Edge III.")
+                .one("hypersonic", "Hyperonic Slash", 40,
+                        "After a short delay, swing while looking at a player within 16 blocks to teleport to them and deal damage. Chain slashes, but the window halves each time.")
+                .two("infinitevoid", "Infinite Void", 60,
+                        "Place a Void Clock where you stand, drastically slowing players within 6 blocks. Lasts 10s.");
+
+        blade("tidebreaker", Material.TRIDENT, "Tidebreaker", "#3B82F6", 9303)
+                .tag("The ocean lives within the wielder.")
+                .swordStats()
+                .aura(Particle.DRIPPING_WATER)
+                .passive("Permanent Water Breathing while held.", e(PotionEffectType.WATER_BREATHING, 0))
+                .one("stormcall", "Stormcall", 40,
+                        "Call a Storm where you look. It damages the two entities with the highest HP within 6 blocks every 0.5s for 10s.")
+                .two("risingtide", "Rising Tide", 50,
+                        "Looking up: blast up on a jet of water, then land with a tidal shockwave. Looking down: throw a wave that pulls players toward you.");
+
+        blade("wither_symbiote", Material.NETHERITE_SWORD, "Wither Symbiote", "#7C3AED", 9304)
+                .tag("It is ready to latch on.")
+                .aura(Particle.SOUL)
+                .passive("Immune to the Wither effect while held.")
+                .one("infection", "Symbiote Infection", 40,
+                        "Your next hit infects the target. When it ends they take damage and are weakened. Press again to detonate it early.")
+                .two("rampage", "Symbiote Rampage", 120,
+                        "20s: +3 hearts, heal 3 hearts, 50% Speed and lifesteal on hit, but you starve faster. Exiting leaves you Weak, Withered and 3 hearts down.");
+
+        add("omen", spearMaterial(), "Omen", "#0EA5A4", 9305)
+                .kind("SPEAR")
+                .tag("Imbued with the power of the Trial Chambers.")
+                .aura(Particle.TRIAL_OMEN)
+                .enchant(Enchantment.SHARPNESS, 4)
+                .enchant(Enchantment.LOOTING, 3)
+                .one("vaultomen", "Vault Omen", 35,
+                        "Throw a Vault Omen where you look for 7s, tethering players who enter within 3 blocks until it expires.")
+                .two("conjuring", "Ominous Conjuring", 50,
+                        "10s: your melee attacks throw Ominous Projectiles that deal AOE damage. More players within 16 blocks raise your Spell Level.");
+    }
+
+    private static Material spearMaterial() {
+        Material m = Material.matchMaterial("NETHERITE_SPEAR");
+        return m != null ? m : Material.NETHERITE_SWORD;
     }
 
     private Weapon add(String id, Material m, String name, String hex, int cmd) {
@@ -245,23 +353,117 @@ public final class WeaponRegistry {
                 .decoration(TextDecoration.ITALIC, false);
     }
 
-    private List<Component> lore(Weapon w) {
+    private static final TextColor GOLD = TextColor.fromHexString("#FFD84A");
+    private static final TextColor PASSIVE_HEAD = TextColor.fromHexString("#FFCFCA");
+    private static final TextColor ABILITY_HEAD = TextColor.fromHexString("#FFF0DA");
+    private static final TextColor AQUA = TextColor.fromHexString("#7DF9FF");
+    private static final TextColor MYTHIC = TextColor.fromHexString("#B388FF");
+    private static final TextColor TEXT = TextColor.fromHexString("#D1D5DB");
+
+    private static Component styled(String text, TextColor color, boolean bold) {
+        return Component.text(text, color)
+                .decoration(TextDecoration.BOLD, bold)
+                .decoration(TextDecoration.ITALIC, false);
+    }
+
+    // Icons are vanilla item textures drawn inline with an object component (Minecraft 1.21.9+).
+    // They come from the client's own item atlas, so every player sees them with or without a resource pack.
+    private static final String I_PASSIVE = "item/nether_star";
+    private static final String I_POWER = "item/echo_shard";
+    private static final String I_COOLDOWN = "item/clock_00";
+    private static final String I_KILLS = "item/bone";
+
+    private static final String SMALL_CAPS = "\u1D00\u0299\u1D04\u1D05\u1D07\uA730\u0262\u029C\u026A\u1D0A\u1D0B\u029F\u1D0D\u0274\u1D0F\u1D18\u01EB\u0280\uA731\u1D1B\u1D1C\u1D20\u1D21x\u028F\u1D22";
+
+    /** Lowercase letters become small caps (a-z only, uppercase stays). Vanilla characters, no pack needed. */
+    public static String sc(String text) {
+        StringBuilder sb = new StringBuilder(text.length());
+        for (char c : text.toCharArray()) sb.append(c >= 'a' && c <= 'z' ? SMALL_CAPS.charAt(c - 'a') : c);
+        return sb.toString();
+    }
+
+    /** Lore line: small caps text. */
+    private static Component sstyled(String text, TextColor color, boolean bold) {
+        return styled(sc(text), color, bold);
+    }
+
+    private static final String I_PASSIVE = "\u2726";
+    private static final String I_POWER = "\u26A1";
+    private static final String I_COOLDOWN = "\u231B";
+    private static final String I_KILLS = "\u2620";
+
+    private static Component icon(String sprite) {
+        return Component.object(net.kyori.adventure.text.object.ObjectContents.sprite(
+                        net.kyori.adventure.key.Key.key("minecraft", "items"),
+                        net.kyori.adventure.key.Key.key("minecraft", sprite)))
+                .decoration(TextDecoration.BOLD, false)
+                .decoration(TextDecoration.ITALIC, false);
+    }
+
+    private static Component space() {
+        return Component.text(" ").decoration(TextDecoration.ITALIC, false);
+    }
+
+    /**
+     * Gem-style lore: section header icons (pixel art from the pack, vanilla symbols without it), a bar in front of
+     * every line, no unicode symbols. kills &lt; 0 hides the kill counter.
+     */
+    private List<Component> lore(Weapon w, int kills) {
         List<Component> lore = new ArrayList<>();
-        boolean first = true;
+        Component bar = styled("\u2503 ", w.color, false);
+
+        lore.add(sstyled(w.name.toUpperCase(), w.color, true)
+                .append(sstyled(" " + w.kind, GOLD, true)));
+        if (!w.tagline.isEmpty()) lore.add(sstyled(w.tagline, NamedTextColor.WHITE, true));
+        lore.add(sstyled("(Mythic)", MYTHIC, false));
+        if (kills >= 0) {
+            lore.add(icon(I_KILLS).append(space()).append(sstyled("Kills: " + kills, NamedTextColor.RED, false)));
+        }
+        lore.add(Component.empty());
+
+        boolean passives = false;
         for (Weapon.Ability a : w.abilities) {
-            if (!first) lore.add(Component.empty());
-            first = false;
+            if (a.trigger().isPower()) continue;
+            if (!passives) {
+                lore.add(icon(I_PASSIVE).append(space()).append(sstyled("PASSIVES", PASSIVE_HEAD, true)));
+                passives = true;
+            }
+            for (String l : wrap(a.desc(), 30)) lore.add(bar.append(sstyled(l, TEXT, false)));
+            if (a.cooldown() > 0) lore.add(cooldown(bar, a.cooldown()));
+        }
 
-            lore.add(Component.text(a.name(), w.color)
-                    .decoration(TextDecoration.BOLD, true)
-                    .decoration(TextDecoration.ITALIC, false)
-                    .append(Component.text("  " + a.trigger().label, NamedTextColor.GRAY)
-                            .decoration(TextDecoration.BOLD, false)));
-
-            for (String l : wrap(a.desc(), 32)) lore.add(line(l, NamedTextColor.GRAY));
-            if (a.cooldown() > 0) lore.add(line(a.cooldown() + "s Cooldown", NamedTextColor.DARK_GRAY));
+        boolean powers = false;
+        for (Weapon.Ability a : w.abilities) {
+            if (!a.trigger().isPower()) continue;
+            if (!powers) {
+                if (passives) lore.add(Component.empty());
+                lore.add(icon(I_POWER).append(space()).append(sstyled("ABILITIES", ABILITY_HEAD, true)));
+                powers = true;
+            }
+            lore.add(bar.append(sstyled(a.name(), w.color, true))
+                    .append(sstyled("  (" + a.trigger().key + ")", NamedTextColor.DARK_GRAY, false)));
+            for (String l : wrap(a.desc(), 30)) lore.add(bar.append(sstyled(l, TEXT, false)));
+            if (a.cooldown() > 0) lore.add(cooldown(bar, a.cooldown()));
         }
         return lore;
+    }
+
+    private static Component cooldown(Component bar, int seconds) {
+        return bar.append(icon(I_COOLDOWN)).append(space())
+                .append(sstyled(seconds + "s Cooldown", NamedTextColor.DARK_GRAY, false));
+    }
+
+    /** Custom model: the pack's custom_model_data and/or an item_model id, both set in config.yml (models:). */
+    @SuppressWarnings("deprecation")
+    private void applyModel(ItemMeta meta, Weapon w) {
+        ConfigurationSection sec = plugin.getConfig().getConfigurationSection("models." + w.id);
+        int cmd = sec != null ? sec.getInt("custom-model-data", w.cmd) : w.cmd;
+        meta.setCustomModelData(cmd);
+        String model = sec != null ? sec.getString("item-model", "") : "";
+        if (model != null && !model.isBlank()) {
+            NamespacedKey k = NamespacedKey.fromString(model.trim());
+            if (k != null) meta.setItemModel(k);
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -272,9 +474,9 @@ public final class WeaponRegistry {
         ItemStack item = new ItemStack(w.material);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(title(w));
-        meta.lore(lore(w));
+        meta.lore(lore(w, isProgressive(w) ? 0 : -1));
         meta.setUnbreakable(true);
-        meta.setCustomModelData(w.cmd);
+        applyModel(meta, w);
         if (w.worn) wornNoArmorLayer(meta);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         w.enchants.forEach((ench, lvl) -> meta.addEnchant(ench, lvl, true));
@@ -292,27 +494,48 @@ public final class WeaponRegistry {
     }
 
     /** Display-only icon (no weapon tag) with custom lore, used by /holder. */
-    @SuppressWarnings("deprecation")
     public ItemStack icon(Weapon w, List<Component> lore) {
         ItemStack item = new ItemStack(w.material);
         ItemMeta meta = item.getItemMeta();
         meta.displayName(title(w));
         meta.lore(lore);
-        meta.setCustomModelData(w.cmd);
+        applyModel(meta, w);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         item.setItemMeta(meta);
         return item;
     }
 
+    // ------------------------------------------------------------------
+    // Kill counter (Ancient Blade)
+    // ------------------------------------------------------------------
+
+    public boolean isProgressive(Weapon w) {
+        return w.id.equals("ancient_blade");
+    }
+
+    public int kills(ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return 0;
+        return item.getItemMeta().getPersistentDataContainer().getOrDefault(killsKey, PersistentDataType.INTEGER, 0);
+    }
+
+    public void setKills(ItemStack item, int kills) {
+        Weapon w = of(item);
+        if (w == null) return;
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(killsKey, PersistentDataType.INTEGER, kills);
+        meta.lore(lore(w, kills));
+        item.setItemMeta(meta);
+    }
+
     /**
-     * Golden helmet showed the vanilla gold armor when worn because the item still had the gold
-     * armor asset. Equippable with no asset id = no armor layer, so the game draws the item's own
-     * model (the crown, via its "head" display) on the player's head instead.
+     * Wearing the crown showed nothing without the resource pack (the item had no armor asset,
+     * so it looked like it was floating). It now uses the vanilla netherite armor model, which
+     * always renders on the head with or without the pack.
      */
     private static void wornNoArmorLayer(ItemMeta meta) {
         var eq = meta.getEquippable();
         eq.setSlot(org.bukkit.inventory.EquipmentSlot.HEAD);
-        eq.setModel(null);
+        eq.setModel(NamespacedKey.minecraft("netherite"));
         meta.setEquippable(eq);
     }
 }

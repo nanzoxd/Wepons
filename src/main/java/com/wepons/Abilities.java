@@ -126,6 +126,7 @@ public final class Abilities implements Listener {
                 break;
             }
 
+            plugin.relics().tick(p);
             plugin.holders().scan(p);
         }
     }
@@ -212,6 +213,8 @@ public final class Abilities implements Listener {
         if (last != null && now - last < 150) return;
         lastFire.put(p.getUniqueId(), now);
 
+        if (plugin.relics().preempt(p, w, a)) return;
+
         long left = remaining(p, key(w, a));
         if (left > 0) {
             warnCooldown(p, w, a, left);
@@ -248,7 +251,7 @@ public final class Abilities implements Listener {
             case "ravagerride" -> ravagerRide(p);
             case "riptide" -> riptide(p, w, a);
             case "royalreveal" -> royalReveal(p);
-            default -> false;
+            default -> plugin.relics().run(p, w, a);
         };
     }
 
@@ -271,33 +274,36 @@ public final class Abilities implements Listener {
             p.playSound(p.getLocation(), Sound.BLOCK_GLASS_BREAK, 0.4f, 1.2f);
             return;
         }
-
-        Weapon w = reg.of(item);
-        if (w == null) return;
-        for (Ability a : w.abilities) {
-            boolean plain = a.trigger() == Trigger.RIGHT_CLICK;
-            boolean shift = a.trigger() == Trigger.SHIFT_RIGHT && p.isSneaking();
-            if (plain || shift) {
-                e.setCancelled(true);
-                e.setUseItemInHand(org.bukkit.event.Event.Result.DENY);
-                fire(p, w, a);
-                return;
-            }
-        }
     }
 
+    /**
+     * F = Ability 1. F with an item in the offhand = Ability 2 (or Shift + F when
+     * keybinds.ability-2 is "sneak" in config.yml). The swap is only cancelled when an ability
+     * is bound, so a weapon without Ability 2 still swaps normally.
+     * The crown fires on F only when both hands are empty, so normal swapping is never blocked.
+     */
     @EventHandler
     public void onSwap(PlayerSwapHandItemsEvent e) {
         Player p = e.getPlayer();
-        if (!p.isSneaking()) return;
-        for (Weapon w : new Weapon[]{reg.of(p.getInventory().getItemInMainHand()), wornWeapon(p)}) {
-            if (w == null) continue;
-            for (Ability a : w.abilities) {
-                if (a.trigger() == Trigger.SHIFT_SWAP) {
-                    e.setCancelled(true);
-                    fire(p, w, a);
-                    return;
-                }
+        ItemStack main = p.getInventory().getItemInMainHand();
+        ItemStack off = p.getInventory().getItemInOffHand();
+
+        Weapon w = reg.of(main);
+        if (w == null) {
+            Weapon worn = wornWeapon(p);
+            if (worn == null || !main.getType().isAir() || !off.getType().isAir()) return;
+            w = worn;
+        }
+
+        boolean sneakMode = "sneak".equalsIgnoreCase(plugin.getConfig().getString("keybinds.ability-2", "offhand-item"));
+        boolean second = sneakMode ? p.isSneaking() : !off.getType().isAir();
+        Trigger wanted = second ? Trigger.TWO : Trigger.ONE;
+
+        for (Ability a : w.abilities) {
+            if (a.trigger() == wanted) {
+                e.setCancelled(true);
+                fire(p, w, a);
+                return;
             }
         }
     }
@@ -756,6 +762,7 @@ public final class Abilities implements Listener {
                 default -> { }
             }
         }
+        plugin.relics().onHit(attacker, w, victim, e);
     }
 
     private void rebuke(Player blocker, Player attacker) {

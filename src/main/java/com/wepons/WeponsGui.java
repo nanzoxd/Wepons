@@ -61,7 +61,7 @@ public final class WeponsGui implements InventoryHolder {
         Map<UUID, String> holders = plugin.holders().holdersOf(w.id);
 
         if (holders.isEmpty()) {
-            lore.add(Component.text("No holder", NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text(WeaponRegistry.sc("No holder"), NamedTextColor.DARK_GRAY).decoration(TextDecoration.ITALIC, false));
             return lore;
         }
         for (Map.Entry<UUID, String> entry : holders.entrySet()) {
@@ -74,7 +74,7 @@ public final class WeponsGui implements InventoryHolder {
             lore.add(Component.text("\u25CF ", online ? NamedTextColor.GREEN : NamedTextColor.GRAY)
                     .decoration(TextDecoration.ITALIC, false)
                     .append(Component.text(name, NamedTextColor.WHITE))
-                    .append(Component.text(online ? "  Online" : "  Offline",
+                    .append(Component.text(WeaponRegistry.sc(online ? "  Online" : "  Offline"),
                             online ? NamedTextColor.GREEN : NamedTextColor.DARK_GRAY)));
         }
         return lore;

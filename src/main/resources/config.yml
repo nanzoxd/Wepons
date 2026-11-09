@@ -4,3 +4,56 @@ glow-when-held: true
 # The Ban Hammer runs "ban <name>" from the console when it hits a player.
 # Set to false to disable the ban and keep the hammer as a normal weapon.
 ban-hammer-enabled: true
+
+# ---------------------------------------------------------------------------
+# Keybinds
+# Ability 1 is always F. Ability 2 is F while you have an item in your offhand.
+# Set ability-2 to "sneak" if you would rather use Shift + F.
+# (The Monarch Crown uses F with both hands empty, so normal swapping still works.)
+# ---------------------------------------------------------------------------
+keybinds:
+  ability-2: offhand-item   # offhand-item | sneak
+
+# ---------------------------------------------------------------------------
+# Custom models (resource pack)
+# Every weapon uses custom-model-data from the pack. Put the numbers from your
+# Relique Weapons pack here. If the pack uses the item_model component instead,
+# set item-model (e.g. "relique:fortune_blade"). Leave item-model empty otherwise.
+# Defaults below are placeholders, change them to match the pack.
+# ---------------------------------------------------------------------------
+models:
+  fortune_blade:   { custom-model-data: 9201, item-model: "" }
+  flame_blade:     { custom-model-data: 9202, item-model: "" }
+  bloom_blade:     { custom-model-data: 9203, item-model: "" }
+  ancient_blade:   { custom-model-data: 9301, item-model: "" }
+  dragonrend:      { custom-model-data: 9302, item-model: "" }
+  tidebreaker:     { custom-model-data: 9303, item-model: "" }
+  wither_symbiote: { custom-model-data: 9304, item-model: "" }
+  omen:            { custom-model-data: 9305, item-model: "" }
+  monarchcrown:    { custom-model-data: 9124, item-model: "" }
+
+# Ancient Blade kill progression (like Altar SMP). Set progression to false to unlock everything.
+ancient-blade:
+  progression: true
+  shift-kills: 2      # permanent Speed I
+  grip-kills: 4       # permanent Strength II
+  presence-kills: 3   # Ability 1
+  darkness-kills: 5   # Ability 2
+
+# Damage and size tuning (2 damage = 1 heart)
+tuning:
+  flame-sweep-damage: 6.0
+  flame-blast-damage: 10.0
+  flame-blast-radius: 7.0
+  wilt-health-cap: 10.0          # enemies are capped to this much max health (10 = 5 hearts)
+  presence-damage: 2.0
+  darkness-damage: 12.0
+  darkness-split-damage: 3.0
+  slash-damage: 10.0
+  void-radius: 6.0
+  stormcall-damage: 3.0          # per target, every 0.5s
+  storm-radius: 6.0
+  tide-damage: 4.0
+  infection-initial-damage: 2.0
+  infection-detonation-damage: 8.0
+  conjuring-damage: 6.0

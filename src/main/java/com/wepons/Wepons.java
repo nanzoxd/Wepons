@@ -8,6 +8,7 @@ public final class Wepons extends JavaPlugin {
     private WeaponRegistry registry;
     private HolderManager holders;
     private Abilities abilities;
+    private Relics relics;
 
     @Override
     public void onEnable() {
@@ -16,8 +17,10 @@ public final class Wepons extends JavaPlugin {
         registry = new WeaponRegistry(this);
         holders = new HolderManager(this);
         abilities = new Abilities(this);
+        relics = new Relics(this);
 
         getServer().getPluginManager().registerEvents(abilities, this);
+        getServer().getPluginManager().registerEvents(relics, this);
         getServer().getPluginManager().registerEvents(new ProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(this), this);
         getServer().getPluginManager().registerEvents(new MinerListener(this), this);
@@ -40,6 +43,10 @@ public final class Wepons extends JavaPlugin {
 
     public WeaponRegistry registry() {
         return registry;
+    }
+
+    public Relics relics() {
+        return relics;
     }
 
     public HolderManager holders() {
