@@ -387,11 +387,6 @@ public final class WeaponRegistry {
         return styled(sc(text), color, bold);
     }
 
-    private static final String I_PASSIVE = "\u2726";
-    private static final String I_POWER = "\u26A1";
-    private static final String I_COOLDOWN = "\u231B";
-    private static final String I_KILLS = "\u2620";
-
     private static Component icon(String sprite) {
         return Component.object(net.kyori.adventure.text.object.ObjectContents.sprite(
                         net.kyori.adventure.key.Key.key("minecraft", "items"),
@@ -405,7 +400,7 @@ public final class WeaponRegistry {
     }
 
     /**
-     * Gem-style lore: section header icons (pixel art from the pack, vanilla symbols without it), a bar in front of
+     * Gem-style lore: section header icons (vanilla item sprites), a bar in front of
      * every line, no unicode symbols. kills &lt; 0 hides the kill counter.
      */
     private List<Component> lore(Weapon w, int kills) {
