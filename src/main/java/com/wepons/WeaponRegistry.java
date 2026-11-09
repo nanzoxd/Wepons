@@ -348,7 +348,7 @@ public final class WeaponRegistry {
     }
 
     public Component title(Weapon w) {
-        return Component.text(w.name, w.color)
+        return Component.text(sc(w.name), w.color)
                 .decoration(TextDecoration.BOLD, true)
                 .decoration(TextDecoration.ITALIC, false);
     }
@@ -399,53 +399,50 @@ public final class WeaponRegistry {
         return Component.text(" ").decoration(TextDecoration.ITALIC, false);
     }
 
-    /**
-     * Gem-style lore: section header icons (vanilla item sprites), a bar in front of
-     * every line, no unicode symbols. kills &lt; 0 hides the kill counter.
-     */
+    /** Compact, clean lore: one short line per passive/power, no repeated item name or cooldown clutter. */
     private List<Component> lore(Weapon w, int kills) {
         List<Component> lore = new ArrayList<>();
-        Component bar = styled("\u2503 ", w.color, false);
 
-        lore.add(sstyled(w.name.toUpperCase(), w.color, true)
-                .append(sstyled(" " + w.kind, GOLD, true)));
+        // Keep the item name only once; the material kind is intentionally omitted.
         if (!w.tagline.isEmpty()) lore.add(sstyled(w.tagline, NamedTextColor.WHITE, true));
         lore.add(sstyled("(Mythic)", MYTHIC, false));
         if (kills >= 0) {
-            lore.add(icon(I_KILLS).append(space()).append(sstyled("Kills: " + kills, NamedTextColor.RED, false)));
-        }
-        lore.add(Component.empty());
-
-        boolean passives = false;
-        for (Weapon.Ability a : w.abilities) {
-            if (a.trigger().isPower()) continue;
-            if (!passives) {
-                lore.add(icon(I_PASSIVE).append(space()).append(sstyled("PASSIVES", PASSIVE_HEAD, true)));
-                passives = true;
-            }
-            for (String l : wrap(a.desc(), 30)) lore.add(bar.append(sstyled(l, TEXT, false)));
-            if (a.cooldown() > 0) lore.add(cooldown(bar, a.cooldown()));
+            lore.add(sstyled("Kills: " + kills, NamedTextColor.RED, false));
         }
 
-        boolean powers = false;
-        for (Weapon.Ability a : w.abilities) {
-            if (!a.trigger().isPower()) continue;
-            if (!powers) {
-                if (passives) lore.add(Component.empty());
-                lore.add(icon(I_POWER).append(space()).append(sstyled("ABILITIES", ABILITY_HEAD, true)));
-                powers = true;
+        boolean hasPassives = w.abilities.stream().anyMatch(a -> !a.trigger().isPower());
+        boolean hasPowers = w.abilities.stream().anyMatch(a -> a.trigger().isPower());
+
+        if (hasPassives) {
+            lore.add(Component.empty());
+            lore.add(sstyled("PASSIVES", PASSIVE_HEAD, true));
+            for (Weapon.Ability a : w.abilities) {
+                if (a.trigger().isPower()) continue;
+                String line = shortLore(a.name().equalsIgnoreCase("Passive") || a.name().equalsIgnoreCase("Carry")
+                        ? a.desc() : a.name());
+                if (!line.isBlank()) lore.add(sstyled("- " + line, TEXT, false));
             }
-            lore.add(bar.append(sstyled(a.name(), w.color, true))
-                    .append(sstyled("  (" + a.trigger().key + ")", NamedTextColor.DARK_GRAY, false)));
-            for (String l : wrap(a.desc(), 30)) lore.add(bar.append(sstyled(l, TEXT, false)));
-            if (a.cooldown() > 0) lore.add(cooldown(bar, a.cooldown()));
+        }
+
+        if (hasPowers) {
+            lore.add(Component.empty());
+            lore.add(sstyled("POWERS", AQUA, true));
+            for (Weapon.Ability a : w.abilities) {
+                if (!a.trigger().isPower()) continue;
+                lore.add(sstyled("- " + shortLore(a.name()), TEXT, false));
+            }
         }
         return lore;
     }
 
-    private static Component cooldown(Component bar, int seconds) {
-        return bar.append(icon(I_COOLDOWN)).append(space())
-                .append(sstyled(seconds + "s Cooldown", NamedTextColor.DARK_GRAY, false));
+    /** Keep lore entries to a single readable line and remove trailing sentence clutter. */
+    private static String shortLore(String text) {
+        if (text == null) return "";
+        String value = text.replaceAll("\\s+", " ").trim();
+        int sentence = value.indexOf('.');
+        if (sentence >= 0) value = value.substring(0, sentence).trim();
+        if (value.length() > 34) value = value.substring(0, 31).trim() + "...";
+        return value;
     }
 
     /** Custom model: the pack's custom_model_data and/or an item_model id, both set in config.yml (models:). */
