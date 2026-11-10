@@ -415,24 +415,33 @@ public final class Relics implements Listener {
         slashWindow.remove(id);
     }
 
-    /** Ancient Blade: every player kill counts. */
+    /** Ancient Blade, Strength Sword and Weaving Sword: every player kill counts. */
     @EventHandler
     public void onDeath(PlayerDeathEvent e) {
         Player dead = e.getEntity();
         cleanup(dead);
 
+        // kill streak weapons: dying resets the count until the ability is unlocked
+        for (ItemStack drop : e.getDrops()) reg.resetStreak(drop);
+        if (e.getKeepInventory()) {
+            for (ItemStack it : dead.getInventory().getContents()) reg.resetStreak(it);
+        }
+
         Player killer = dead.getKiller();
         if (killer == null || killer == dead) return;
         ItemStack item = killer.getInventory().getItemInMainHand();
         Weapon w = reg.of(item);
-        if (w == null || !w.id.equals("ancient_blade")) return;
+        if (w == null || !reg.isProgressive(w)) return;
 
         int kills = reg.kills(item) + 1;
         reg.setKills(item, kills);
+        plugin.upgrades().onKill(killer, item, w, kills);   // Level II check (kill tasks)
         killer.getInventory().setItemInMainHand(item);
-        killer.getWorld().spawnParticle(Particle.SCULK_SOUL, dead.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.05);
-        killer.playSound(killer.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 1f, 1f);
-        bar(killer, "Ancient Blade kills: " + kills, NamedTextColor.AQUA);
+        if (w.id.equals("ancient_blade")) {
+            killer.getWorld().spawnParticle(Particle.SCULK_SOUL, dead.getLocation().add(0, 1, 0), 30, 0.4, 0.8, 0.4, 0.05);
+            killer.playSound(killer.getLocation(), Sound.ENTITY_WARDEN_HEARTBEAT, 1f, 1f);
+        }
+        bar(killer, w.name + " kills: " + kills, NamedTextColor.AQUA);
     }
 
     @EventHandler

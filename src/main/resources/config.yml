@@ -6,13 +6,33 @@ glow-when-held: true
 ban-hammer-enabled: true
 
 # ---------------------------------------------------------------------------
-# Keybinds
-# Ability 1 is always F. Ability 2 is F while you have an item in your offhand.
-# Set ability-2 to "sneak" if you would rather use Shift + F.
-# (The Monarch Crown uses F with both hands empty, so normal swapping still works.)
+# Keybinds: F = Ability 1, Shift + F = Ability 2.
+# (A weapon with only one ability fires it on F or Shift + F. The Monarch Crown uses F with both hands empty.)
 # ---------------------------------------------------------------------------
-keybinds:
-  ability-2: offhand-item   # offhand-item | sneak
+
+# Impact Sword: damage-reduction is the passive (0.2 = 20% less damage taken while held).
+# The Impact Bubble ability lasts "duration" seconds and pushes players who touch it away.
+impact-sword:
+  damage-reduction: 0.2
+  duration: 15
+  radius: 2.5
+  knockback-horizontal: 1.0
+  knockback-vertical: 0.3
+
+# Level II (Strength Sword and Weaving Sword only): total player kills needed. Level II recharges abilities
+# faster (0.8 = 20% shorter cooldowns).
+upgrades:
+  level2-cooldown-multiplier: 0.8
+  strength: 4
+  weaving: 4
+
+# Kills a weapon needs before its ability unlocks (counts player kills with that weapon in hand).
+# Strength Sword: Strength II ability. Weaving Sword: Cobweb hit. Set progression to false to unlock everything.
+kill-unlocks:
+  progression: true
+  strength-sword: 2
+  weaving-sword: 2
+  impact-sword: 2   # kills IN A ROW (dying resets it until unlocked)
 
 # ---------------------------------------------------------------------------
 # Custom models (resource pack)

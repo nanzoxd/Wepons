@@ -17,7 +17,6 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.EvokerFangs;
-import org.bukkit.entity.ItemDisplay;
 import org.bukkit.GameMode;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -72,8 +71,6 @@ public final class Abilities implements Listener {
     private final Map<UUID, UUID> ravagerOwner = new HashMap<>();
     private final Map<UUID, LastHit> lastAttack = new HashMap<>();
     private final Set<UUID> banLock = new HashSet<>();
-    private final Map<UUID, Integer> charges = new HashMap<>();
-    private final Set<UUID> internal = new HashSet<>();
 
     public Abilities(Wepons plugin) {
         this.plugin = plugin;
@@ -191,15 +188,19 @@ public final class Abilities implements Listener {
 
     private void startCooldown(Player p, Weapon w, Ability a, int seconds) {
         if (seconds <= 0) return;
+        if (w.upgrade != null && reg.level(p.getInventory().getItemInMainHand()) >= 2) {
+            seconds = Math.max(1, (int) Math.round(seconds * reg.cooldownMultiplier()));  // Level II recharges faster
+        }
+        final int secs = seconds;
         String key = key(w, a);
         cooldowns.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>())
-                .put(key, System.currentTimeMillis() + seconds * 1000L);
+                .put(key, System.currentTimeMillis() + secs * 1000L);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!p.isOnline() || remaining(p, key) > 0) return;
             p.sendActionBar(Component.text(a.name() + " ", w.color).append(Component.text("ready", NamedTextColor.GRAY)));
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.6f, 1.6f);
-        }, seconds * 20L);
+        }, secs * 20L);
     }
 
     private void warnCooldown(Player p, Weapon w, Ability a, long ms) {
@@ -214,18 +215,36 @@ public final class Abilities implements Listener {
         lastFire.put(p.getUniqueId(), now);
 
         if (plugin.relics().preempt(p, w, a)) return;
+        if (lockedByKills(p, w, a, true)) return;
 
         long left = remaining(p, key(w, a));
         if (left > 0) {
             warnCooldown(p, w, a, left);
             return;
         }
+        Location before = p.getLocation().clone();
         if (!run(p, w, a)) return;
 
         startCooldown(p, w, a);
-        if (!a.key().equals("minetoggle") && !a.key().equals("riptide")) {
+        plugin.fx().ability(p, w, a, before);      // visuals + sounds only, after the ability ran
+        plugin.upgrades().onAbility(p, w);         // Level II task progress
+        if (!a.key().equals("minetoggle")) {
             p.sendActionBar(Component.text(a.name() + " ", w.color).append(Component.text("activated", NamedTextColor.GRAY)));
         }
+    }
+
+    /** True while the ability's kill unlock is not reached yet (Strength Sword, Weaving Sword). */
+    private boolean lockedByKills(Player p, Weapon w, Ability a, boolean notify) {
+        Weapon.Unlock u = w.unlocks.get(a.key());
+        if (u == null || !plugin.getConfig().getBoolean("kill-unlocks.progression", true)) return false;
+        int need = reg.unlockKills(u);
+        int kills = reg.kills(p.getInventory().getItemInMainHand());
+        if (kills >= need) return false;
+        if (notify) {
+            p.sendActionBar(Component.text("Locked: needs " + need + (u.streak() ? " kills in a row (" : " kills (") + kills + "/" + need + ")", NamedTextColor.RED));
+            p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_BASS, 0.5f, 0.6f);
+        }
+        return true;
     }
 
     private boolean run(Player p, Weapon w, Ability a) {
@@ -249,8 +268,8 @@ public final class Abilities implements Listener {
             case "minetoggle" -> mineToggle(p);
             case "gravitypulse" -> gravityPulse(p);
             case "ravagerride" -> ravagerRide(p);
-            case "riptide" -> riptide(p, w, a);
             case "royalreveal" -> royalReveal(p);
+            case "impactbubble" -> impactBubble(p);
             default -> plugin.relics().run(p, w, a);
         };
     }
@@ -277,9 +296,8 @@ public final class Abilities implements Listener {
     }
 
     /**
-     * F = Ability 1. F with an item in the offhand = Ability 2 (or Shift + F when
-     * keybinds.ability-2 is "sneak" in config.yml). The swap is only cancelled when an ability
-     * is bound, so a weapon without Ability 2 still swaps normally.
+     * F = Ability 1. Shift + F = Ability 2. A weapon with only one ability fires it on F or
+     * Shift + F. The swap is only cancelled when an ability is bound, so other items still swap normally.
      * The crown fires on F only when both hands are empty, so normal swapping is never blocked.
      */
     @EventHandler
@@ -295,17 +313,17 @@ public final class Abilities implements Listener {
             w = worn;
         }
 
-        boolean sneakMode = "sneak".equalsIgnoreCase(plugin.getConfig().getString("keybinds.ability-2", "offhand-item"));
-        boolean second = sneakMode ? p.isSneaking() : !off.getType().isAir();
-        Trigger wanted = second ? Trigger.TWO : Trigger.ONE;
-
+        Ability one = null;
+        Ability two = null;
         for (Ability a : w.abilities) {
-            if (a.trigger() == wanted) {
-                e.setCancelled(true);
-                fire(p, w, a);
-                return;
-            }
+            if (a.trigger() == Trigger.ONE && one == null) one = a;
+            if (a.trigger() == Trigger.TWO && two == null) two = a;
         }
+        // Shift + F = Ability 2 (falls back to Ability 1 when the weapon has no second ability)
+        Ability chosen = p.isSneaking() ? (two != null ? two : one) : one;
+        if (chosen == null) return;
+        e.setCancelled(true);
+        fire(p, w, chosen);
     }
 
     /** The weapon in the helmet slot, if it is a wearable one (Monarch Crown). */
@@ -711,6 +729,14 @@ public final class Abilities implements Listener {
             e.setDamage(e.getDamage() * 1.2);
             v.getWorld().playSound(v.getLocation(), Sound.BLOCK_GLASS_BREAK, 0.4f, 1.6f);
         }
+        // Impact Sword passive: less damage taken while it is held
+        if (e.getEntity() instanceof Player v) {
+            Weapon held = reg.of(v.getInventory().getItemInMainHand());
+            if (held != null && held.id.equals("impact")) {
+                double cut = plugin.getConfig().getDouble("impact-sword.damage-reduction", 0.2);
+                e.setDamage(e.getDamage() * (1.0 - cut));
+            }
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -734,7 +760,6 @@ public final class Abilities implements Listener {
         }
 
         if (!(e.getDamager() instanceof Player attacker)) return;
-        if (internal.contains(attacker.getUniqueId())) return;
 
         // Monarch Crown: 2x damage while worn
         Weapon crown = wornWeapon(attacker);
@@ -752,13 +777,13 @@ public final class Abilities implements Listener {
         else sweepHit(victim);
         for (Ability a : w.abilities) {
             if (a.trigger() != Trigger.HIT) continue;
+            if (lockedByKills(attacker, w, a, false)) continue;
             switch (a.key()) {
                 case "cobwebproc" -> cobweb(victim);
                 case "lightningproc" -> lightningProc(victim);
                 case "summonfangs" -> fangTrap(attacker, w, a, victim);
                 case "freeze" -> frostStrike(attacker, victim);
                 case "banhammer" -> banHammer(attacker, w, a, victim);
-                case "tridentstrike" -> skyTrident(attacker, w, victim);
                 default -> { }
             }
         }
@@ -924,206 +949,64 @@ public final class Abilities implements Listener {
     }
 
     // ==================================================================
-    // Jayden Trident + Monarch Crown
+    // Impact Sword
     // ==================================================================
 
-    /** Riptide-style dash: two uses back to back, then a 60 second cooldown. */
-    private boolean riptide(Player p, Weapon w, Ability a) {
-        int used = charges.merge(p.getUniqueId(), 1, Integer::sum);
+    /** A bubble around you for a while; players who touch it are pushed away. */
+    private boolean impactBubble(Player p) {
+        final int duration = plugin.getConfig().getInt("impact-sword.duration", 15) * 20;
+        final double radius = plugin.getConfig().getDouble("impact-sword.radius", 2.5);
+        final double horizontal = plugin.getConfig().getDouble("impact-sword.knockback-horizontal", 1.0);
+        final double vertical = plugin.getConfig().getDouble("impact-sword.knockback-vertical", 0.3);
 
-        p.setVelocity(p.getLocation().getDirection().multiply(2.2).add(new Vector(0, 0.15, 0)));
-        World world = p.getWorld();
-        world.playSound(p.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_3, 1f, 1f);
-        world.playSound(p.getLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 0.3f, 1.6f);
-
-        // sonic booms left behind along the path
+        p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.4f);
         new BukkitRunnable() {
-            int ticks = 0;
+            int t = 0;
+            final Map<UUID, Integer> lastPush = new HashMap<>();
 
             @Override
             public void run() {
-                if (ticks >= 8 || !p.isOnline()) {
+                if (!p.isOnline() || p.isDead() || t >= duration) {
+                    if (p.isOnline()) p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.4f);
                     cancel();
                     return;
                 }
-                if (ticks % 2 == 0) {
-                    p.getWorld().spawnParticle(Particle.SONIC_BOOM, p.getLocation().add(0, 1, 0), 1, 0, 0, 0, 0);
-                }
-                p.getWorld().spawnParticle(Particle.CLOUD, p.getLocation().add(0, 0.8, 0), 3, 0.2, 0.2, 0.2, 0.01);
-                ticks++;
-            }
-        }.runTaskTimer(plugin, 0L, 1L);
+                Location center = p.getLocation().add(0, 1, 0);
+                World w = p.getWorld();
 
-        if (used >= 2) {
-            charges.remove(p.getUniqueId());
-            startCooldown(p, w, a, 60);
-            p.sendActionBar(Component.text("Riptide Dash ", w.color).append(Component.text("2/2 - 60s cooldown", NamedTextColor.GRAY)));
-        } else {
-            p.sendActionBar(Component.text("Riptide Dash ", w.color).append(Component.text("1/2", NamedTextColor.GRAY)));
-        }
+                // the bubble: points on a sphere shell
+                ThreadLocalRandom rnd = ThreadLocalRandom.current();
+                for (int i = 0; i < 18; i++) {
+                    Vector v = new Vector(rnd.nextGaussian(), rnd.nextGaussian(), rnd.nextGaussian());
+                    if (v.lengthSquared() < 1.0E-6) continue;
+                    v.normalize().multiply(radius);
+                    w.spawnParticle(Particle.DUST, center.clone().add(v), 1, 0, 0, 0, 0,
+                            new Particle.DustOptions(Color.AQUA, 1.0f));
+                }
+                if (t % 10 == 0) w.spawnParticle(Particle.END_ROD, center, 6, radius * 0.5, radius * 0.5, radius * 0.5, 0.01);
+
+                // knock back anyone who touches it
+                for (Player o : nearbyEnemies(p, center, radius)) {
+                    Integer last = lastPush.get(o.getUniqueId());
+                    if (last != null && t - last < 8) continue;
+                    lastPush.put(o.getUniqueId(), t);
+                    Vector away = o.getLocation().toVector().subtract(p.getLocation().toVector());
+                    away.setY(0);
+                    if (away.lengthSquared() < 1.0E-6) away = new Vector(rnd.nextDouble() - 0.5, 0, rnd.nextDouble() - 0.5);
+                    away.normalize().multiply(horizontal).setY(vertical);
+                    o.setVelocity(away);
+                    w.playSound(o.getLocation(), Sound.ENTITY_PLAYER_ATTACK_KNOCKBACK, 1f, 1.2f);
+                    w.spawnParticle(Particle.CLOUD, o.getLocation().add(0, 1, 0), 8, 0.3, 0.3, 0.3, 0.05);
+                }
+                t += 2;
+            }
+        }.runTaskTimer(plugin, 0L, 2L);
         return true;
     }
 
-    /** Every 5th hit: a trident falls on the target, 4 hearts of damage and a ring of fire. */
-    private void skyTrident(Player p, Weapon w, LivingEntity victim) {
-        String key = p.getUniqueId() + ":trident";
-        int count = hitCounts.merge(key, 1, Integer::sum);
-        if (count < 5) {
-            p.sendActionBar(Component.text("Sky Trident " + count + "/5", w.color));
-            return;
-        }
-        hitCounts.put(key, 0);
-
-        World world = victim.getWorld();
-        // Falling trident: uses the pack's falling_trident model (custom_model_data 9125),
-        // stays point-down and faces the viewer, drops with an End Rod / Enchant trail
-        // like the Paladin Axe slam, then hits with a dirt shockwave in impact().
-        ItemStack tridentItem = new ItemStack(Material.TRIDENT);
-        ItemMeta tm = tridentItem.getItemMeta();
-        tm.setCustomModelData(9125);
-        tridentItem.setItemMeta(tm);
-
-        final double height = 12.0;
-        final int fallTicks = 20; // 1 second, slow enough to see
-        ItemDisplay trident = world.spawn(victim.getLocation().add(0, height, 0), ItemDisplay.class, d -> {
-            d.setItemStack(tridentItem);
-            d.setPersistent(false);
-            d.setBillboard(org.bukkit.entity.Display.Billboard.VERTICAL);
-            d.setTransformation(new org.bukkit.util.Transformation(
-                    new org.joml.Vector3f(0, 0, 0),
-                    new org.joml.AxisAngle4f(0, 0, 0, 1),
-                    new org.joml.Vector3f(1.6f, 1.6f, 1.6f),
-                    new org.joml.AxisAngle4f(0, 0, 0, 1)));
-            d.setTeleportDuration(2);
-            d.setBrightness(new org.bukkit.entity.Display.Brightness(15, 15));
-            d.setViewRange(2.0f);
-        });
-        world.playSound(victim.getLocation(), Sound.ITEM_TRIDENT_THUNDER, 1f, 1.2f);
-        world.playSound(victim.getLocation(), Sound.ITEM_TRIDENT_RIPTIDE_1, 0.8f, 0.7f);
-
-        new BukkitRunnable() {
-            int t = 0;
-
-            @Override
-            public void run() {
-                t++;
-                if (!victim.isValid()) {
-                    trident.remove();
-                    cancel();
-                    return;
-                }
-                // accelerates like a real drop: slow start, fast finish
-                double progress = Math.min(1.0, (t * t) / (double) (fallTicks * fallTicks));
-                Location ground = victim.getLocation();
-                Location at = ground.clone().add(0, height * (1.0 - progress) + 1.8, 0);
-                trident.teleport(at);
-
-                // glowing column marking the fall
-                for (double y = 0; y < height * (1.0 - progress) + 1; y += 1.0) {
-                    world.spawnParticle(Particle.END_ROD, ground.clone().add(0, y + 0.5, 0), 1, 0.1, 0.05, 0.1, 0);
-                }
-                world.spawnParticle(Particle.ENCHANT, at, 10, 0.4, 0.4, 0.4, 0.5);
-
-                if (t >= fallTicks) {
-                    trident.remove();
-                    cancel();
-                    impact(p, victim);
-                }
-            }
-        }.runTaskTimer(plugin, 1L, 1L);
-    }
-
-    private void impact(Player p, LivingEntity victim) {
-        Location at = victim.getLocation();
-        World world = at.getWorld();
-
-        internal.add(p.getUniqueId());
-        try {
-            victim.damage(8, p); // 4 hearts
-        } finally {
-            internal.remove(p.getUniqueId());
-        }
-
-        world.playSound(at, Sound.ITEM_TRIDENT_HIT_GROUND, 1f, 0.8f);
-        world.playSound(at, Sound.ENTITY_GENERIC_EXPLODE, 0.6f, 1.3f);
-        world.spawnParticle(Particle.EXPLOSION, at.clone().add(0, 1, 0), 1);
-        shockwave(p, victim, at);
-        world.playSound(at, Sound.ENTITY_RAVAGER_ROAR, 0.4f, 1.6f);
-
-        for (Entity en : world.getNearbyEntities(at, 3, 2, 3)) {
-            if (en instanceof LivingEntity le && le != p) le.setFireTicks(100);
-        }
-
-        // ring of fire, burns for about 2 seconds
-        new BukkitRunnable() {
-            int pulses = 0;
-
-            @Override
-            public void run() {
-                if (pulses++ >= 10) {
-                    cancel();
-                    return;
-                }
-                for (int i = 0; i < 32; i++) {
-                    double ang = Math.PI * 2 * i / 32;
-                    Location ring = at.clone().add(Math.cos(ang) * 3, 0.2, Math.sin(ang) * 3);
-                    world.spawnParticle(Particle.FLAME, ring, 1, 0.05, 0.1, 0.05, 0.01);
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 4L);
-    }
-
-    /**
-     * AltarSMP Paladin Axe "Earthshatter" shockwave: an orange ring expands 0.8 blocks every 2 ticks up to
-     * 8 blocks while chunks of the ground fly up; everything caught by the ring takes 8 damage and is launched.
-     */
-    private void shockwave(Player owner, LivingEntity victim, Location center) {
-        World world = center.getWorld();
-        world.playSound(center, Sound.ENTITY_GENERIC_EXPLODE, 1.5f, 0.5f);
-        world.spawnParticle(Particle.EXPLOSION, center, 3, 0.5, 0.5, 0.5, 0);
-        Material under = center.clone().subtract(0, 0.5, 0).getBlock().getType();
-        final org.bukkit.block.data.BlockData ground =
-                (under.isBlock() && under.isSolid() ? under : Material.DIRT).createBlockData();
-        final Particle.DustOptions dust = new Particle.DustOptions(Color.ORANGE, 1f);
-
-        new BukkitRunnable() {
-            double radius = 0;
-
-            @Override
-            public void run() {
-                if (radius >= 8.0) {
-                    cancel();
-                    return;
-                }
-                radius += 0.8;
-                for (int i = 0; i < 30; i++) {
-                    double a = Math.PI * 2 * i / 30;
-                    world.spawnParticle(Particle.DUST, center.getX() + radius * Math.cos(a), center.getY(),
-                            center.getZ() + radius * Math.sin(a), 1, 0, 0, 0, 0, dust);
-                }
-                for (int i = 0; i < 20; i++) {
-                    double a = Math.random() * Math.PI * 2;
-                    double r = radius * Math.random();
-                    Location loc = new Location(world, center.getX() + r * Math.cos(a), center.getY(),
-                            center.getZ() + r * Math.sin(a));
-                    world.spawnParticle(Particle.BLOCK, loc, 2, 0.1, 0.1, 0.1, 0, ground);
-                }
-                for (Entity en : world.getNearbyEntities(center, radius, 3, radius)) {
-                    if (!(en instanceof LivingEntity le) || le == owner || le == victim
-                            || le instanceof org.bukkit.entity.ArmorStand) continue;
-                    double d = le.getLocation().distance(center);
-                    if (d < radius - 1 || d > radius + 0.5) continue;
-                    internal.add(owner.getUniqueId());
-                    try {
-                        le.damage(8, owner);
-                    } finally {
-                        internal.remove(owner.getUniqueId());
-                    }
-                    le.setVelocity(le.getVelocity().add(new Vector(0, 0.8, 0)));
-                }
-            }
-        }.runTaskTimer(plugin, 0L, 2L);
-    }
+    // ==================================================================
+    // Monarch Crown
+    // ==================================================================
 
     /** Every other player within 30 blocks glows for 10 seconds. */
     private boolean royalReveal(Player p) {

@@ -7,10 +7,9 @@ author: Wepons
 
 commands:
   wepons:
-    description: Open the weapons menu
-    usage: /wepons
+    description: Open the weapons menu, or /wepons enchants for the enchantment dialog
+    usage: /wepons [enchants]
     aliases: [weapons]
-    permission: wepons.use
   holder:
     description: See who holds each weapon
     usage: /holder
@@ -21,6 +20,9 @@ permissions:
   wepons.use:
     description: Open /wepons and take weapons from it
     default: op
+  wepons.enchants:
+    description: Open the /wepons enchants dialog
+    default: true
   wepons.holder:
     description: Open /holder
     default: true

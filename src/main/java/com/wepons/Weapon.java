@@ -15,15 +15,15 @@ import java.util.Map;
 public final class Weapon {
 
     /**
-     * How an ability starts. ONE = F, TWO = F with an item in the offhand
-     * (or Shift + F, see keybinds.ability-2 in config.yml).
+     * How an ability starts. ONE = F, TWO = Shift + F.
+     * (A weapon with only one ability fires it on F or Shift + F.)
      */
     public enum Trigger {
         PASSIVE("Passive", ""),
         HIT("On Hit", ""),
         BLOCK("On Block", ""),
         ONE("Ability 1", "F"),
-        TWO("Ability 2", "F + Offhand");
+        TWO("Ability 2", "Shift + F");
 
         public final String label;
         public final String key;
@@ -42,6 +42,15 @@ public final class Weapon {
 
     public record Eff(PotionEffectType type, int amp) {}
 
+    /** An ability that stays locked until the weapon has this many player kills (config: kill-unlocks.<path>). */
+    public record Unlock(String path, int def, boolean streak) {}
+
+    /** What a weapon has to do to reach Level II. */
+    public enum UpType { KILLS, HITS, ABILITY }
+
+    /** Level II task: type, default amount (config upgrades.<id> overrides it) and a short text. */
+    public record Upgrade(UpType type, int amount, String desc) {}
+
     public final String id;
     public final String name;
     public final TextColor color;
@@ -57,6 +66,8 @@ public final class Weapon {
     public final List<Eff> held = new ArrayList<>();   // effects while in main hand
     public final List<Eff> carry = new ArrayList<>();  // effects while anywhere in inventory
     public final Map<Enchantment, Integer> enchants = new LinkedHashMap<>();
+    public final Map<String, Unlock> unlocks = new LinkedHashMap<>();  // ability key -> kills needed
+    public Upgrade upgrade;  // null = this weapon has no Level II
 
     public Weapon(String id, Material material, String name, String hex, int cmd) {
         this.id = id;
@@ -124,7 +135,25 @@ public final class Weapon {
         return this;
     }
 
-    /** Ability 2 (F + offhand). */
+    /** Adds a Level II task to this weapon. */
+    public Weapon upgrade(UpType type, int amount, String desc) {
+        this.upgrade = new Upgrade(type, amount, desc);
+        return this;
+    }
+
+    /** Locks the ability with this key until the weapon has enough kills. */
+    public Weapon unlock(String abilityKey, String configPath, int defaultKills) {
+        unlocks.put(abilityKey, new Unlock(configPath, defaultKills, false));
+        return this;
+    }
+
+    /** Like unlock(), but the kills must be in a row: dying before it is unlocked resets the count. */
+    public Weapon unlockStreak(String abilityKey, String configPath, int defaultKills) {
+        unlocks.put(abilityKey, new Unlock(configPath, defaultKills, true));
+        return this;
+    }
+
+    /** Ability 2 (Shift + F). */
     public Weapon two(String key, String name, int cooldown, String desc) {
         abilities.add(new Ability(key, name, Trigger.TWO, cooldown, desc));
         return this;
