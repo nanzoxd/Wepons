@@ -12,6 +12,7 @@ public final class Wepons extends JavaPlugin {
     private VisualFX fx;
     private Upgrades upgrades;
     private EnchantDialogs enchantDialogs;
+    private DisplayFX displays;
 
     @Override
     public void onEnable() {
@@ -21,6 +22,7 @@ public final class Wepons extends JavaPlugin {
         holders = new HolderManager(this);
         abilities = new Abilities(this);
         relics = new Relics(this);
+        displays = new DisplayFX(this);
         fx = new VisualFX(this);
         upgrades = new Upgrades(this);
         enchantDialogs = new EnchantDialogs(this);
@@ -50,6 +52,7 @@ public final class Wepons extends JavaPlugin {
     @Override
     public void onDisable() {
         if (abilities != null) abilities.shutdown();
+        if (displays != null) displays.cleanup();
         if (holders != null) holders.save();
     }
 
@@ -63,6 +66,10 @@ public final class Wepons extends JavaPlugin {
 
     public VisualFX fx() {
         return fx;
+    }
+
+    public DisplayFX displays() {
+        return displays;
     }
 
     public EnchantDialogs enchantDialogs() {

@@ -65,7 +65,23 @@ public final class VisualFX implements Listener {
         this.plugin = plugin;
         this.reg = plugin.registry();
         define();
+        defineSweep();
         fallback = styles.get("dash");
+    }
+
+    // ---- how much sweep each weapon gets: 0 = none, 1 = light, 2 = full (arc + weapon model swing) ----
+
+    private final Map<String, Integer> sweep = new HashMap<>();
+
+    private void defineSweep() {
+        for (String id : new String[]{"strength", "voidfang", "stormbreaker", "scythe", "lightningsword",
+                "flame_blade", "ancient_blade", "dragonrend", "wither_symbiote"}) sweep.put(id, 2);
+        for (String id : new String[]{"freeze", "speed", "dash", "flightsword", "tidebreaker", "omen", "bloom_blade",
+                "fortune_blade", "impact", "cobwebaxe", "gravityaxe", "dashmace", "banhammer"}) sweep.put(id, 1);
+    }
+
+    private int sweepOf(Weapon w) {
+        return sweep.getOrDefault(w.id, 0);
     }
 
     // ==================================================================
@@ -223,7 +239,8 @@ public final class VisualFX implements Listener {
         Weapon w = reg.of(item);
         if (w == null) return;
         Style s = style(w);
-        if (!s.swing()) return;
+        int sweepLvl = sweepOf(w);
+        if (sweepLvl == 0) return;
 
         long now = System.currentTimeMillis();
         Long last = lastSwing.get(p.getUniqueId());
@@ -232,7 +249,7 @@ public final class VisualFX implements Listener {
         if (p.getTargetEntity(4) == null && p.getTargetBlockExact(4) != null) return;  // mining, not attacking
         lastSwing.put(p.getUniqueId(), now);
 
-        swingArc(p, s, isCrit(p), reg.level(item));
+        swingArc(p, s, isCrit(p), reg.level(item), sweepLvl, item);
     }
 
     private List<Vector> planar(double rollDeg, double spanDeg, double radius, int n, Vector f, Vector r, Vector u, double wave) {
@@ -300,7 +317,7 @@ public final class VisualFX implements Listener {
         }
     }
 
-    private void swingArc(Player p, Style s, boolean crit, int level) {
+    private void swingArc(Player p, Style s, boolean crit, int level, int sweepLvl, ItemStack item) {
         lastArc.put(p.getUniqueId(), System.currentTimeMillis());
         Location eye = p.getEyeLocation();
         World w = p.getWorld();
@@ -314,13 +331,21 @@ public final class VisualFX implements Listener {
         final List<Vector> pts = shape(s.arc(), radius, crit, f, r, u);
         final int total = pts.size();
         final int steps = s.arc() == Arc.THRUST ? 3 : (s.heavy() ? 5 : 4);
-        final float base = crit ? 1.5f : 1.1f;
+        final float base = (sweepLvl >= 2 ? 1.0f : 0.8f) + (crit ? 0.3f : 0f);
         final boolean fancy = level >= 2;
+        final boolean rich = sweepLvl >= 2;
+        double density = Math.max(0.1, Math.min(1.5, plugin.getConfig().getDouble("visuals.sweep-density", 1.0)));
+        final int stride = Math.max(1, (int) Math.round((rich ? 2 : 3) / density));
+
+        // full sweeps also swing a ghost copy of the weapon's own model
+        if (rich && plugin.getConfig().getBoolean("visuals.model-animations", true)) {
+            plugin.displays().ghostSwing(p, item, crit);
+        }
 
         // sound at the start of the swing; a deeper layer for criticals
         snd(w, origin, s.swingS(), crit ? 0.55f : 0.42f, crit ? s.swingP() * 0.88f : s.swingP());
 
-        drawSlice(w, origin, pts, 0, total / steps, total, s, base, crit, fancy);
+        drawSlice(w, origin, pts, 0, total / steps, total, s, base, crit, fancy, stride, rich);
         new BukkitRunnable() {
             int k = 1;
 
@@ -332,7 +357,7 @@ public final class VisualFX implements Listener {
                 }
                 int from = k * total / steps;
                 int to = (k + 1) * total / steps;
-                drawSlice(w, origin, pts, from, to, total, s, base, crit, fancy);
+                drawSlice(w, origin, pts, from, to, total, s, base, crit, fancy, stride, rich);
                 if (k == steps - 1 && crit) snd(w, origin, Sound.ENTITY_PLAYER_ATTACK_CRIT, 0.25f, 1.7f);
                 k++;
             }
@@ -340,16 +365,17 @@ public final class VisualFX implements Listener {
     }
 
     private void drawSlice(World w, Location origin, List<Vector> pts, int from, int to, int total,
-                           Style s, float base, boolean crit, boolean fancy) {
+                           Style s, float base, boolean crit, boolean fancy, int stride, boolean rich) {
         for (int i = from; i < to && i < total; i++) {
+            if (i % stride != 0 && i != total - 1) continue;      // thinner arc: skip points
             Location l = origin.clone().add(pts.get(i));
             double t = i / (double) Math.max(1, total - 1);
             float size = (float) (base * (0.65 + 0.55 * Math.sin(Math.PI * t)));
             dot(w, l, s, size);
-            if (i % 3 == 0) w.spawnParticle(s.trail(), l, 1, 0.05, 0.05, 0.05, 0.01);
-            if (crit && i % 2 == 0) w.spawnParticle(Particle.CRIT, l, 2, 0.1, 0.1, 0.1, 0.2);
-            if (fancy && i % 2 == 1) w.spawnParticle(Particle.END_ROD, l, 1, 0, 0, 0, 0);
-            if (i == total - 1) w.spawnParticle(Particle.END_ROD, l, 3, 0.08, 0.08, 0.08, 0.03);
+            if (rich && i % 4 == 0) w.spawnParticle(s.trail(), l, 1, 0.05, 0.05, 0.05, 0.01);
+            if (rich && crit && i % 4 == 0) w.spawnParticle(Particle.CRIT, l, 2, 0.1, 0.1, 0.1, 0.2);
+            if (fancy && i % 4 == 2) w.spawnParticle(Particle.END_ROD, l, 1, 0, 0, 0, 0);
+            if (i == total - 1 && rich) w.spawnParticle(Particle.END_ROD, l, 2, 0.08, 0.08, 0.08, 0.03);
         }
     }
 
@@ -384,7 +410,8 @@ public final class VisualFX implements Listener {
         impact(v, c, dir, s, crit, level);
 
         Long arc = lastArc.get(p.getUniqueId());
-        if (s.swing() && (arc == null || now - arc > 450)) swingArc(p, s, crit, level);
+        int sweepLvl = sweepOf(w);
+        if (sweepLvl > 0 && (arc == null || now - arc > 450)) swingArc(p, s, crit, level, sweepLvl, item);
     }
 
     private void impact(LivingEntity victim, Location c, Vector dir, Style s, boolean crit, int level) {
@@ -517,6 +544,7 @@ public final class VisualFX implements Listener {
         ItemStack held = p.getInventory().getItemInMainHand();
         int level = reg.level(held);
         float vol = 0.5f;
+        final boolean models = plugin.getConfig().getBoolean("visuals.model-animations", true);
 
         switch (a.key()) {
             case "dash":
@@ -534,6 +562,7 @@ public final class VisualFX implements Listener {
                 break;
             case "voidslash":
                 beam(p, s, 10, false, Particle.END_ROD);
+                if (models) plugin.displays().flyingModel(p, held, 8);
                 snd(world, at, s.abilS(), vol, s.abilP());
                 break;
             case "voidpull":
@@ -549,12 +578,14 @@ public final class VisualFX implements Listener {
                 break;
             case "frostnova":
                 expandingRing(at, 6.0, 10, s, Particle.SNOWFLAKE);
+                if (models) plugin.displays().iceSpikes(at, 6.0, 14);
                 snd(world, at, Sound.BLOCK_GLASS_BREAK, 0.5f, 1.2f);
                 snd(world, at, Sound.ENTITY_PLAYER_HURT_FREEZE, 0.5f, 1.0f);
                 break;
             case "gravitypulse":
                 expandingRing(at, 8.0, 10, s, Particle.REVERSE_PORTAL);
                 column(world, at, s, Particle.END_ROD, 6);
+                if (models) plugin.displays().gravityOrbit(at.clone().add(0, 0.2, 0), 8, 40);
                 snd(world, at, s.abilS(), 0.5f, s.abilP());
                 break;
             case "bulwark":
@@ -571,6 +602,10 @@ public final class VisualFX implements Listener {
                 charge(p, s, 6);
                 expandingRing(at, 2.5, 6, s, Particle.CRIT);
                 world.spawnParticle(Particle.ANGRY_VILLAGER, at.clone().add(0, 2.1, 0), 3, 0.3, 0.1, 0.3, 0);
+                if (models) {
+                    plugin.displays().orbitBlades(p, held, 3, 30);
+                    plugin.displays().debris(at, Material.COBBLED_DEEPSLATE, 8, 2.5);
+                }
                 snd(world, at, Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.5f, 0.6f);
                 break;
             case "secondwind":
@@ -591,11 +626,18 @@ public final class VisualFX implements Listener {
                 expandingRing(at, 12.0, 12, s, Particle.WAX_ON);
                 snd(world, at, s.abilS(), 0.6f, s.abilP());
                 break;
+            case "ravagerride":
+                charge(p, s, 6);
+                expandingRing(at, 4.0, 6, s, s.trail());
+                if (models) plugin.displays().boneFangs(at, 4.0, 10);
+                snd(world, at, s.abilS(), vol, s.abilP());
+                break;
             case "minetoggle":
                 break;
             default:   // relic and remaining abilities: weapon-coloured charge-up + burst
                 charge(p, s, 6);
                 expandingRing(at, 2.4, 5, s, s.trail());
+                if (models && sweepOf(w) >= 2) plugin.displays().orbitBlades(p, held, 2, 16);
                 snd(world, at, s.abilS(), vol, s.abilP());
                 break;
         }
@@ -726,6 +768,7 @@ public final class VisualFX implements Listener {
             w.spawnParticle(Particle.ELECTRIC_SPARK, target.clone().add(0, y * 0.8, 0), 2, 0.1, 0.1, 0.1, 0.02);
         }
         ring(w, target.clone().add(0, 0.1, 0), 1.5, 14, s, 1.3f, Particle.ELECTRIC_SPARK);
+        if (plugin.getConfig().getBoolean("visuals.model-animations", true)) plugin.displays().lightningColumn(target);
         snd(w, target, Sound.ITEM_TRIDENT_THUNDER, 0.5f, 1.4f);
     }
 

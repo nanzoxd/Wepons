@@ -21,8 +21,8 @@ permissions:
     description: Open /wepons and take weapons from it
     default: op
   wepons.enchants:
-    description: Open the /wepons enchants dialog
-    default: true
+    description: Edit the enchantment levels of the weapon in your hand (/wepons enchants)
+    default: op
   wepons.holder:
     description: Open /holder
     default: true

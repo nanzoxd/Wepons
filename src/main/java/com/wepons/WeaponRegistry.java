@@ -52,7 +52,7 @@ public final class WeaponRegistry {
 
     private void register() {
         // ---- passive swords ----
-        blade("weaving", Material.NETHERITE_SWORD, "Weaving Sword", "#A855F7", 9101)
+        blade("weaving", Material.NETHERITE_SWORD, "Spider Blade", "#A855F7", 9101)
                 .upgrade(Weapon.UpType.KILLS, 4, "Kill 4 players")
                 .tag("Spin a web, then wait.")
                 .aura(Particle.WITCH)
@@ -60,37 +60,37 @@ public final class WeaponRegistry {
                 .proc("cobwebproc", "Cobweb", Trigger.HIT, 0, "30% chance to trap the target in cobwebs for 4s.")
                 .unlock("cobwebproc", "weaving-sword", 2);
 
-        blade("resistance", Material.NETHERITE_SWORD, "Resistance Sword", "#9CA3AF", 9102)
+        blade("resistance", Material.NETHERITE_SWORD, "Guardian Blade", "#9CA3AF", 9102)
                 .tag("Stand firm. Nothing breaks you.")
                 .aura(Particle.ASH)
                 .passive("Resistance II while held.", e(PotionEffectType.RESISTANCE, 1))
                 .one("bulwark", "Resistance IV", 20, "Gain Resistance IV for 4s and Absorption II for 8s.");
 
-        blade("speed", Material.NETHERITE_SWORD, "Speed Sword", "#22D3EE", 9103)
+        blade("speed", Material.NETHERITE_SWORD, "Gale Blade", "#22D3EE", 9103)
                 .tag("Gone before the echo lands.")
                 .aura(Particle.ELECTRIC_SPARK)
                 .passive("Speed I while held.", e(PotionEffectType.SPEED, 0))
                 .one("windstep", "Speed II", 45, "Gain Speed II for 15s.");
 
-        blade("invisibility", Material.NETHERITE_SWORD, "Invisible Sword", "#E5E7EB", 9104)
+        blade("invisibility", Material.NETHERITE_SWORD, "Phantom Blade", "#E5E7EB", 9104)
                 .tag("You never saw it coming.")
                 .aura(Particle.CLOUD)
                 .passive("Invisibility while held.", e(PotionEffectType.INVISIBILITY, 0))
                 .one("vanishstep", "Blink", 16, "Teleport 5 blocks forward (2 if blocked) and turn invisible for 3s.");
 
-        blade("regeneration", Material.NETHERITE_SWORD, "Regen Sword", "#FF3B3B", 9105)
+        blade("regeneration", Material.NETHERITE_SWORD, "Mender's Blade", "#FF3B3B", 9105)
                 .tag("Wounds close faster than they open.")
                 .aura(Particle.HEART)
                 .passive("Regeneration I while held.", e(PotionEffectType.REGENERATION, 0))
                 .one("secondwind", "Heal", 25, "Heal 6 hearts and gain Regeneration III for 3s.");
 
-        blade("saturation", Material.NETHERITE_SWORD, "Food Sword", "#FF8A1F", 9106)
+        blade("saturation", Material.NETHERITE_SWORD, "Feast Blade", "#FF8A1F", 9106)
                 .tag("A feast in every swing.")
                 .aura(Particle.FLAME)
                 .passive("Never go hungry while held.", e(PotionEffectType.SATURATION, 0))
                 .one("feast", "Refill Food", 20, "Refill hunger and saturation, plus Regeneration I for 4s.");
 
-        add("haste", Material.NETHERITE_PICKAXE, "Mining Pickaxe", "#FFD21F", 9107)
+        add("haste", Material.NETHERITE_PICKAXE, "Quake Pickaxe", "#FFD21F", 9107)
                 .tag("Stone is only a suggestion.")
                 .aura(Particle.END_ROD)
                 .enchant(Enchantment.EFFICIENCY, 7)
@@ -98,7 +98,7 @@ public final class WeaponRegistry {
                 .passive("Efficiency VII: mines blocks very fast.")
                 .one("minetoggle", "Mine Mode", 0, "Switch the pickaxe between Fortune III and Silk Touch.");
 
-        blade("strength", Material.NETHERITE_SWORD, "Strength Sword", "#EF4444", 9108)
+        blade("strength", Material.NETHERITE_SWORD, "Berserker Blade", "#EF4444", 9108)
                 .upgrade(Weapon.UpType.KILLS, 4, "Kill 4 players")
                 .tag("Might is its own argument.")
                 .aura(Particle.ANGRY_VILLAGER)
@@ -107,79 +107,79 @@ public final class WeaponRegistry {
                 .unlock("berserk", "strength-sword", 2);
 
         // ---- active swords ----
-        blade("dash", Material.NETHERITE_SWORD, "Dash Sword", "#38BDF8", 9109)
+        blade("dash", Material.NETHERITE_SWORD, "Rift Blade", "#38BDF8", 9109)
                 .tag("Distance is a choice.")
                 .aura(Particle.SOUL_FIRE_FLAME)
                 .one("dash", "Dash", 8, "Launch yourself forward in a quick dash.")
                 .two("blink", "Blink", 14, "Teleport up to 6 blocks forward, even through thin walls.");
 
-        blade("voidfang", Material.NETHERITE_SWORD, "Void Sword", "#A78BFA", 9110)
+        blade("voidfang", Material.NETHERITE_SWORD, "Void Fang", "#A78BFA", 9110)
                 .tag("The void answers its master.")
                 .aura(Particle.PORTAL)
                 .one("voidslash", "Void Slash", 12, "Slash the player you look at (up to 10 blocks) for 2.5 hearts.")
                 .two("voidpull", "Void Pull", 16, "Pull the player you look at (up to 10 blocks) to you.");
 
-        blade("stormbreaker", Material.NETHERITE_SWORD, "Storm Sword", "#FACC15", 9111)
+        blade("stormbreaker", Material.NETHERITE_SWORD, "Stormbreaker", "#FACC15", 9111)
                 .tag("Thunder follows the blade.")
                 .aura(Particle.END_ROD)
                 .one("lightning", "Lightning Strike", 15, "Call lightning where you look. Players near it take 3 hearts.")
                 .two("staticfield", "Static Field", 18, "Slow every player within 5 blocks (Slowness II, 3s).");
 
-        blade("freeze", Material.NETHERITE_SWORD, "Frost Sword", "#38E8E0", 9112)
+        blade("freeze", Material.NETHERITE_SWORD, "Glacier Blade", "#38E8E0", 9112)
                 .tag("Cold is the last thing they feel.")
                 .aura(Particle.SNOWFLAKE)
                 .proc("freeze", "Frost Strike", Trigger.HIT, 0, "Every 3rd hit on a player freezes them for 5s.")
                 .one("frostnova", "Frost Nova", 20, "Freeze players within 6 blocks for 10s and slow them.");
 
-        blade("scythe", Material.NETHERITE_SWORD, "Scythe", "#C26A6A", 9113)
+        blade("scythe", Material.NETHERITE_SWORD, "Reaper Scythe", "#C26A6A", 9113)
                 .tag("The harvest never ends.")
                 .aura(Particle.CRIMSON_SPORE)
                 .proc("summonfangs", "Fang Trap", Trigger.HIT, 30, "Every 5th hit traps the target in fangs for 3s.")
                 .one("ravagerride", "Ravager Ride", 40, "Ride a ravager for 15s.");
 
-        add("fireshield", Material.SHIELD, "Fire Shield", "#F97316", 9114)
+        add("fireshield", Material.SHIELD, "Phoenix Shield", "#F97316", 9114)
                 .tag("Strike me and burn.")
                 .aura(Particle.FLAME)
                 .proc("flamerebuke", "Flame Rebuke", Trigger.BLOCK, 0, "While blocking, attackers are launched back and set on fire for 4s.");
 
         // ---- utility weapons ----
-        blade("flightsword", Material.NETHERITE_SWORD, "Flight Sword", "#55FF55", 9115)
+        blade("flightsword", Material.NETHERITE_SWORD, "Sky Blade", "#55FF55", 9115)
                 .tag("The sky is just another road.")
                 .aura(Particle.HAPPY_VILLAGER)
                 .one("flightdash", "Dash", 20, "Dash forward at high speed.");
 
-        blade("lightningsword", Material.NETHERITE_SWORD, "Lightning Sword", "#FFFF55", 9116)
+        blade("lightningsword", Material.NETHERITE_SWORD, "Thunder Blade", "#FFFF55", 9116)
                 .tag("Every strike calls the storm.")
                 .aura(Particle.END_ROD)
                 .proc("lightningproc", "Storm Edge", Trigger.HIT, 0, "30% chance to strike the target with lightning.");
 
-        blade("cobwebaxe", Material.NETHERITE_AXE, "Web Axe", "#FF55FF", 9117)
+        blade("cobwebaxe", Material.NETHERITE_AXE, "Widow's Axe", "#FF55FF", 9117)
                 .enchant(Enchantment.EFFICIENCY, 5)
                 .tag("Nothing escapes the web.")
                 .aura(Particle.ENCHANT)
                 .proc("cobwebproc", "Cobweb", Trigger.HIT, 0, "30% chance to trap the target in cobwebs for 4s.");
 
-        blade("gravityaxe", Material.NETHERITE_AXE, "Gravity Axe", "#55FFFF", 9118)
+        blade("gravityaxe", Material.NETHERITE_AXE, "Graviton Axe", "#55FFFF", 9118)
                 .enchant(Enchantment.EFFICIENCY, 5)
                 .tag("Even the ground lets go.")
                 .aura(Particle.ELECTRIC_SPARK)
                 .one("gravitypulse", "Gravity Pulse", 10, "Lift players within 8 blocks for 5s and blind them for 3s.");
 
-        add("grapplebow", Material.BOW, "Grapple Bow", "#CC66CC", 9119)
+        add("grapplebow", Material.BOW, "Hookshot Bow", "#CC66CC", 9119)
                 .tag("Pulled to the target, always.")
                 .aura(Particle.WITCH)
                 .enchant(Enchantment.POWER, 5)
                 .enchant(Enchantment.INFINITY, 1)
                 .one("grapplelaunch", "Grapple Launch", 10, "Launch yourself forward.");
 
-        add("dashmace", Material.MACE, "Dash Mace", "#FF5555", 9120)
+        add("dashmace", Material.MACE, "Comet Mace", "#FF5555", 9120)
                 .tag("Impact is everything.")
                 .aura(Particle.FLAME)
                 .enchant(Enchantment.DENSITY, 5)
                 .enchant(Enchantment.WIND_BURST, 5)
                 .one("dashmacedash", "Dash", 20, "Dash forward at very high speed.");
 
-        add("banhammer", Material.MACE, "Ban Hammer", "#FF4040", 9121)
+        add("banhammer", Material.MACE, "Doom Hammer", "#FF4040", 9121)
                 .tag("The final verdict.")
                 .aura(Particle.ANGRY_VILLAGER)
                 .enchant(Enchantment.DENSITY, 3)
@@ -189,14 +189,14 @@ public final class WeaponRegistry {
                 .proc("banhammer", "Judgement", Trigger.HIT, 40, "Hit a player to ban them.");
 
         // ---- more tools ----
-        add("smelter", Material.NETHERITE_PICKAXE, "Smelter Pickaxe", "#FF7A1A", 9122)
+        add("smelter", Material.NETHERITE_PICKAXE, "Forge Pickaxe", "#FF7A1A", 9122)
                 .tag("Ore comes out finished.")
                 .aura(Particle.FLAME)
                 .enchant(Enchantment.EFFICIENCY, 7)
                 .passive("Ores drop smelted with Fortune III. Other blocks drop as if Silk Touch.")
                 .passive("Breaks 2 blocks at once.");
 
-        add("lumberjack", Material.NETHERITE_AXE, "Lumberjack Axe", "#8B5A2B", 9126)
+        add("lumberjack", Material.NETHERITE_AXE, "Timber Axe", "#8B5A2B", 9126)
                 .enchant(Enchantment.SHARPNESS, 4)
                 .tag("One swing, the whole tree.")
                 .aura(Particle.HAPPY_VILLAGER)
@@ -223,21 +223,21 @@ public final class WeaponRegistry {
                         "Every player within 30 blocks glows for 10s. Press F with both hands empty.");
 
         // ---- Relique blades ----
-        blade("fortune_blade", Material.NETHERITE_SWORD, "Fortune Blade", "#FBBF24", 9201)
+        blade("fortune_blade", Material.NETHERITE_SWORD, "Gilded Blade", "#FBBF24", 9201)
                 .tag("Luck favors the bold.")
                 .aura(Particle.HAPPY_VILLAGER)
                 .passive("Gain 2x XP while holding the blade.")
                 .one("fortunefeast", "Endless Feast", 60, "Any food that you eat is not consumed.")
                 .two("fortunerolls", "Lucky Strikes", 90, "Your hits gain random damage multipliers.");
 
-        blade("flame_blade", Material.NETHERITE_SWORD, "Flame Blade", "#FF4D1F", 9202)
+        blade("flame_blade", Material.NETHERITE_SWORD, "Inferno Blade", "#FF4D1F", 9202)
                 .tag("Born in the heart of the fire.")
                 .aura(Particle.FLAME)
                 .passive("Infinite Fire Resistance while held.", e(PotionEffectType.FIRE_RESISTANCE, 0))
                 .one("flamesweep", "Flame Sweep", 60, "Sets enemies on fire and knocks them away.")
                 .two("flameblast", "Flame Explosion", 90, "Creates a powerful flame explosion.");
 
-        blade("bloom_blade", Material.NETHERITE_SWORD, "Bloom Blade", "#FF1FB4", 9203)
+        blade("bloom_blade", Material.NETHERITE_SWORD, "Blossom Blade", "#FF1FB4", 9203)
                 .tag("Life blooms where it cuts.")
                 .aura(Particle.CHERRY_LEAVES)
                 .passive("Every 10th hit heals you the damage dealt.")
@@ -427,6 +427,10 @@ public final class WeaponRegistry {
     }
 
     private List<Component> lore(Weapon w, int kills, int level, int prog) {
+        return lore(w, kills, level, prog, w.enchants);
+    }
+
+    private List<Component> lore(Weapon w, int kills, int level, int prog, Map<Enchantment, Integer> ench) {
         List<Component> lore = new ArrayList<>();
 
         if (!w.tagline.isEmpty()) lore.add(sstyled(w.tagline, NamedTextColor.WHITE, true));
@@ -466,10 +470,10 @@ public final class WeaponRegistry {
             }
         }
 
-        if (!w.enchants.isEmpty()) {
+        if (!ench.isEmpty()) {
             lore.add(Component.empty());
             lore.add(sstyled("enchants", ENCH_HEAD, true));
-            for (Map.Entry<Enchantment, Integer> en : w.enchants.entrySet()) lore.add(enchLine(en));
+            for (Map.Entry<Enchantment, Integer> en : ench.entrySet()) lore.add(enchLine(en));
         }
         return lore;
     }
@@ -674,7 +678,7 @@ public final class WeaponRegistry {
         if (w == null) return;
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(killsKey, PersistentDataType.INTEGER, kills);
-        meta.lore(lore(w, kills, level(item), progress(item)));
+        meta.lore(lore(w, kills, level(item), progress(item), orderedEnchants(w, item)));
         item.setItemMeta(meta);
     }
 
@@ -715,8 +719,33 @@ public final class WeaponRegistry {
         ItemMeta meta = item.getItemMeta();
         meta.getPersistentDataContainer().set(levelKey, PersistentDataType.INTEGER, level);
         meta.getPersistentDataContainer().set(progKey, PersistentDataType.INTEGER, prog);
-        meta.lore(lore(w, kills, level, prog));
+        meta.lore(lore(w, kills, level, prog, orderedEnchants(w, item)));
         item.setItemMeta(meta);
+    }
+
+    /** Rebuilds the lore from the item's real state (kills, level, task progress, enchantments). */
+    public void refreshLore(ItemStack item) {
+        Weapon w = of(item);
+        if (w == null) return;
+        int kills = isProgressive(w) ? kills(item) : -1;
+        ItemMeta meta = item.getItemMeta();
+        meta.lore(lore(w, kills, level(item), progress(item), orderedEnchants(w, item)));
+        item.setItemMeta(meta);
+    }
+
+    /** The item's enchantments: the weapon's own order first, then any others by name. */
+    private Map<Enchantment, Integer> orderedEnchants(Weapon w, ItemStack item) {
+        Map<Enchantment, Integer> have = item.getEnchantments();
+        Map<Enchantment, Integer> out = new LinkedHashMap<>();
+        for (Enchantment e : w.enchants.keySet()) {
+            if (have.containsKey(e)) out.put(e, have.get(e));
+        }
+        Map<String, Enchantment> rest = new TreeMap<>();
+        for (Enchantment e : have.keySet()) {
+            if (!out.containsKey(e)) rest.put(e.getKey().getKey(), e);
+        }
+        for (Enchantment e : rest.values()) out.put(e, have.get(e));
+        return out;
     }
 
     /**

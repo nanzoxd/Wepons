@@ -940,7 +940,7 @@ public final class Abilities implements Listener {
         world.playSound(v.getLocation(), Sound.ENTITY_PLAYER_DEATH, 1f, 1f);
         world.playSound(v.getLocation(), Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 1f, 1f);
         world.playSound(v.getLocation(), Sound.ENTITY_WITHER_DEATH, 0.6f, 1.2f);
-        Bukkit.broadcast(Component.text("[Wepons] " + name + " was judged by the Ban Hammer!", NamedTextColor.RED));
+        Bukkit.broadcast(Component.text("[Wepons] " + name + " was judged by the Doom Hammer!", NamedTextColor.RED));
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             Bukkit.dispatchCommand(Bukkit.getConsoleSender(), "ban " + name + " Banned by Ban Hammer");

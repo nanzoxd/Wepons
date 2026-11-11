@@ -10,6 +10,17 @@ ban-hammer-enabled: true
 # (A weapon with only one ability fires it on F or Shift + F. The Monarch Crown uses F with both hands empty.)
 # ---------------------------------------------------------------------------
 
+# Visual effects. sweep-density: 1.0 = default, lower = fewer sweep particles (0.5 = half).
+# model-animations: ghost weapon swings, ice spikes, bone fangs, debris and orbiting blades (display entities).
+visuals:
+  sweep-density: 0.7
+  model-animations: true
+
+# Enchantment editor (/wepons enchants): top of the level slider per enchantment. Default = vanilla max
+# (or the weapon's own level if higher). Example: limits: { sharpness: 10 }
+enchant-editor:
+  limits: {}
+
 # Impact Sword: damage-reduction is the passive (0.2 = 20% less damage taken while held).
 # The Impact Bubble ability lasts "duration" seconds and pushes players who touch it away.
 impact-sword:

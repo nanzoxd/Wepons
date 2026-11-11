@@ -22,9 +22,20 @@ Relique blades: Fortune Blade, Flame Blade, Bloom Blade.
 Altar SMP S2: Ancient Blade (kill progression), Dragonrend, Tidebreaker, Wither Symbiote, Omen.
 Plus the original swords, axes, bow, maces, pickaxes, shield, Lumberjack Axe and Monarch Crown (netherite).
 
-## Enchantments
+## Enchantment editor
+`/wepons enchants` (permission `wepons.enchants`, default op) opens a dialog with one button per enchantment the weapon in your
+hand can carry. Click one to open a slider (0 removes it, up to the limit) and press Apply. Limits are in `config.yml` under
+`enchant-editor.limits` (default: vanilla max). Needs Minecraft 1.21.6+.
+
+## Enchantments (old note)
 Every weapon lists its enchantments in the lore. `/wepons enchants` opens a dialog with all enchantments used on the weapons
 (needs Minecraft 1.21.6+); clicking one shows its limit and which weapons carry it. Permission `wepons.enchants` (default: everyone).
+
+## Model animations
+Full-sweep weapons swing a ghost copy of their own model; abilities add ice spikes (Glacier Blade), bone fangs (Reaper Scythe),
+flying debris and orbiting blades (Berserker Blade), a gravity orbit (Graviton Axe), a lightning column (Thunder Blade) and a flying
+model (Void Fang). All are short-lived display entities. Turn them off with `visuals.model-animations: false`;
+lower the sweep particles with `visuals.sweep-density`. Only some weapons have sweeps: full (9), light (13), none (the rest).
 
 ## Visual effects and sounds
 `VisualFX` gives every weapon its own sweep arc (shape follows where you aim), swing / hit / critical sounds, hit particles,
