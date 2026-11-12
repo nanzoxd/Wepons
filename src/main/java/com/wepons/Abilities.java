@@ -223,10 +223,12 @@ public final class Abilities implements Listener {
             return;
         }
         Location before = p.getLocation().clone();
+        org.bukkit.entity.Entity aimedAt = a.key().equals("voidpull") ? p.getTargetEntity(12) : null;
+        org.bukkit.entity.LivingEntity aimed = aimedAt instanceof org.bukkit.entity.LivingEntity le ? le : null;
         if (!run(p, w, a)) return;
 
         startCooldown(p, w, a);
-        plugin.fx().ability(p, w, a, before);      // visuals + sounds only, after the ability ran
+        plugin.fx().ability(p, w, a, before, aimed);      // visuals + sounds only, after the ability ran
         plugin.upgrades().onAbility(p, w);         // Level II task progress
         if (!a.key().equals("minetoggle")) {
             p.sendActionBar(Component.text(a.name() + " ", w.color).append(Component.text("activated", NamedTextColor.GRAY)));

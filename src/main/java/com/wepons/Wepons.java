@@ -13,12 +13,15 @@ public final class Wepons extends JavaPlugin {
     private Upgrades upgrades;
     private EnchantDialogs enchantDialogs;
     private DisplayFX displays;
+    private PackSync packSync;
+    private KingsBridge kings;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
         registry = new WeaponRegistry(this);
+        kings = new KingsBridge(this);
         holders = new HolderManager(this);
         abilities = new Abilities(this);
         relics = new Relics(this);
@@ -35,6 +38,9 @@ public final class Wepons extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new TreeListener(this), this);
         getServer().getPluginManager().registerEvents(fx, this);
         getServer().getPluginManager().registerEvents(upgrades, this);
+        packSync = new PackSync(this);
+        getServer().getPluginManager().registerEvents(packSync, this);
+        packSync.start();
         abilities.start();
 
         Commands commands = new Commands(this);
@@ -78,6 +84,14 @@ public final class Wepons extends JavaPlugin {
 
     public Upgrades upgrades() {
         return upgrades;
+    }
+
+    public PackSync packSync() {
+        return packSync;
+    }
+
+    public KingsBridge kings() {
+        return kings;
     }
 
     public HolderManager holders() {

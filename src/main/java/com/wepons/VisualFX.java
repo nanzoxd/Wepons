@@ -60,6 +60,13 @@ public final class VisualFX implements Listener {
     private final Map<UUID, Long> lastSwing = new HashMap<>();
     private final Map<UUID, Long> lastArc = new HashMap<>();
     private final Map<UUID, Long> lastHit = new HashMap<>();
+    private final Map<UUID, Long> lastCubes = new HashMap<>();
+    private final Map<UUID, Long> lastSig = new HashMap<>();
+
+    /** Abilities that already have their own model effect (no extra weapon signature on top). */
+    private static final java.util.Set<String> OWN_MODEL_FX = java.util.Set.of(
+            "frostnova", "ravagerride", "gravitypulse", "berserk", "impactbubble",
+            "voidpull", "voidslash", "lightning", "minetoggle");
 
     public VisualFX(Wepons plugin) {
         this.plugin = plugin;
@@ -231,27 +238,6 @@ public final class VisualFX implements Listener {
     // Sweep arcs (follow the aim direction)
     // ==================================================================
 
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onSwing(PlayerAnimationEvent e) {
-        if (e.getAnimationType() != PlayerAnimationType.ARM_SWING) return;
-        Player p = e.getPlayer();
-        ItemStack item = p.getInventory().getItemInMainHand();
-        Weapon w = reg.of(item);
-        if (w == null) return;
-        Style s = style(w);
-        int sweepLvl = sweepOf(w);
-        if (sweepLvl == 0) return;
-
-        long now = System.currentTimeMillis();
-        Long last = lastSwing.get(p.getUniqueId());
-        if (last != null && now - last < 350) return;          // one arc per real swing
-        if (p.getAttackCooldown() < 0.5f) return;               // no arcs for click spam
-        if (p.getTargetEntity(4) == null && p.getTargetBlockExact(4) != null) return;  // mining, not attacking
-        lastSwing.put(p.getUniqueId(), now);
-
-        swingArc(p, s, isCrit(p), reg.level(item), sweepLvl, item);
-    }
-
     private List<Vector> planar(double rollDeg, double spanDeg, double radius, int n, Vector f, Vector r, Vector u, double wave) {
         List<Vector> pts = new ArrayList<>(n);
         double roll = Math.toRadians(rollDeg);
@@ -409,6 +395,26 @@ public final class VisualFX implements Listener {
 
         impact(v, c, dir, s, crit, level);
 
+        // a critical hit plays the weapon's signature set piece (at most once every 5 seconds per player)
+        if (crit && plugin.getConfig().getBoolean("visuals.model-animations", true)
+                && plugin.getConfig().getBoolean("visuals.crit-signature", true)) {
+            Long ls = lastSig.get(p.getUniqueId());
+            if (ls == null || now - ls > 5000) {
+                lastSig.put(p.getUniqueId(), now);
+                signature(p, w, v.getLocation(), item, true);
+            }
+        }
+
+        // a few cubes of the weapon's palette burst out of the hit (a criticals pops a glass cube too)
+        if (plugin.getConfig().getStringList("visuals.hit-cubes-weapons").contains(w.id)) {
+            Long lc = lastCubes.get(p.getUniqueId());
+            if (lc == null || now - lc > 250) {
+                lastCubes.put(p.getUniqueId(), now);
+                ModelKits.Kit kit = ModelKits.of(w.id);
+                plugin.displays().hitBurst(c, kit.chunks(), kit.glass(), crit);
+            }
+        }
+
         Long arc = lastArc.get(p.getUniqueId());
         int sweepLvl = sweepOf(w);
         if (sweepLvl > 0 && (arc == null || now - arc > 450)) swingArc(p, s, crit, level, sweepLvl, item);
@@ -537,7 +543,7 @@ public final class VisualFX implements Listener {
     // ==================================================================
 
     /** Called right after an ability ran. 'from' is where the player stood before it ran. */
-    public void ability(Player p, Weapon w, Weapon.Ability a, Location from) {
+    public void ability(Player p, Weapon w, Weapon.Ability a, Location from, LivingEntity aimed) {
         Style s = style(w);
         World world = p.getWorld();
         Location at = p.getLocation();
@@ -553,10 +559,16 @@ public final class VisualFX implements Listener {
             case "grapplelaunch":
                 snd(world, at, s.abilS(), vol, s.abilP());
                 trail(p, s, 8);
+                if (models) plugin.displays().dashImages(p, held, 12);
                 break;
             case "blink":
             case "vanishstep":
                 portalLine(world, from, at, s);
+                if (models) {
+                    plugin.displays().afterimage(from, held, p);
+                    ModelKits.Kit rk = ModelKits.of(w.id);
+                    plugin.displays().rift(from, rk.glass(), rk.chunks()[0], p.getLocation().getYaw());
+                }
                 snd(world, from, Sound.ENTITY_ENDERMAN_TELEPORT, 0.4f, 1.5f);
                 snd(world, at, Sound.ENTITY_ENDERMAN_TELEPORT, 0.5f, 1.2f);
                 break;
@@ -567,6 +579,7 @@ public final class VisualFX implements Listener {
                 break;
             case "voidpull":
                 beam(p, s, 10, true, Particle.PORTAL);
+                if (models && aimed != null && aimed.isValid()) plugin.displays().rope(p, aimed, Material.PURPLE_CONCRETE, 16);
                 snd(world, at, s.abilS(), vol, s.abilP() * 0.8f);
                 break;
             case "lightning":
@@ -585,7 +598,7 @@ public final class VisualFX implements Listener {
             case "gravitypulse":
                 expandingRing(at, 8.0, 10, s, Particle.REVERSE_PORTAL);
                 column(world, at, s, Particle.END_ROD, 6);
-                if (models) plugin.displays().gravityOrbit(at.clone().add(0, 0.2, 0), 8, 40);
+                if (models) plugin.displays().singularity(at, 40);
                 snd(world, at, s.abilS(), 0.5f, s.abilP());
                 break;
             case "bulwark":
@@ -604,7 +617,8 @@ public final class VisualFX implements Listener {
                 world.spawnParticle(Particle.ANGRY_VILLAGER, at.clone().add(0, 2.1, 0), 3, 0.3, 0.1, 0.3, 0);
                 if (models) {
                     plugin.displays().orbitBlades(p, held, 3, 30);
-                    plugin.displays().debris(at, Material.COBBLED_DEEPSLATE, 8, 2.5);
+                    plugin.displays().debris(at, new Material[]{Material.RED_CONCRETE, Material.NETHER_WART_BLOCK, Material.REDSTONE_BLOCK}, 14, 2.8);
+                    plugin.displays().groundRing(at, 4.5, Material.RED_CONCRETE, 26, 10, 24);
                 }
                 snd(world, at, Sound.ENTITY_PLAYER_ATTACK_STRONG, 0.5f, 0.6f);
                 break;
@@ -620,6 +634,11 @@ public final class VisualFX implements Listener {
                 break;
             case "impactbubble":
                 expandingRing(at.clone().add(0, 0.9, 0), 2.5, 6, s, Particle.END_ROD);
+                if (models) {
+                    plugin.displays().bubble(p, plugin.getConfig().getInt("impact-sword.duration", 15) * 20,
+                            plugin.getConfig().getDouble("impact-sword.radius", 2.5),
+                            Material.RED_STAINED_GLASS, Material.RED_STAINED_GLASS);
+                }
                 snd(world, at, Sound.ENTITY_WARDEN_SONIC_BOOM, 0.22f, 1.7f);
                 break;
             case "royalreveal":
@@ -642,9 +661,67 @@ public final class VisualFX implements Listener {
                 break;
         }
 
+        if (models && !OWN_MODEL_FX.contains(a.key())) signature(p, w, at, held, false);
+
         if (level >= 2) {
             ring(world, at.clone().add(0, 0.1, 0), 1.5, 16, s, 1.4f, Particle.END_ROD);
             snd(world, at, Sound.ENTITY_EXPERIENCE_ORB_PICKUP, 0.25f, 1.8f);
+        }
+    }
+
+    /**
+     * The weapon's signature set piece, built from its palette (see ModelKits).
+     * 'at' is the centre (the player for abilities, the victim for critical hits); 'onHit' tells which.
+     */
+    private void signature(Player p, Weapon w, Location at, ItemStack held, boolean onHit) {
+        ModelKits.Kit k = ModelKits.of(w.id);
+        DisplayFX d = plugin.displays();
+        Vector fwd = p.getLocation().getDirection().setY(0);
+        if (fwd.lengthSquared() < 1.0E-6) fwd = new Vector(0, 0, 1);
+        fwd.normalize();
+        Location ahead = onHit ? at.clone() : at.clone().add(fwd.clone().multiply(5));
+        Material[] ch = k.chunks();
+        for (ModelKits.Sig sig : k.sigs()) {
+            switch (sig) {
+                case CUBES -> {
+                    d.tumbleCubes(at, k.glass(), 3, 1.5f, 24);
+                    d.debris(at, ch, 8, 2.2);
+                }
+                case RING -> {
+                    d.groundRing(at, 4.0, k.tile(), 22, 8, 22);
+                    d.debris(at, ch, 6, 2.0);
+                }
+                case PILLARS -> d.spikes(at, 3.5, 8, ch, 0.55f, 1.6f, 2.8f, true, 12);
+                case TENDRILS -> d.spikes(at, 3.2, 9, ch, 0.2f, 2.0f, 3.6f, true, 14);
+                case TORNADO -> d.tornado(at, ch, 6, 26);
+                case ORBIT -> d.orbitCubes(p, ch, 4, 1.7, 26);
+                case WAVE -> d.slashWave(p, k.glass(), ch[0]);
+                case WEB -> d.web(at, 3.6, k.tile());
+                case PLATES -> d.plates(p, k.glass(), 6, 1.9, 30);
+                case HELIX -> d.helix(p, ch, 32);
+                case EMBERS -> d.embers(at, ch, 12, 18);
+                case ITEM_RAIN -> d.itemRain(at, k.items(), 9, 3.0);
+                case FISSURE -> d.fissure(at, 5.0, Material.BLACK_CONCRETE, k.tile());
+                case RIFT -> d.rift(at.clone().add(fwd.clone().multiply(1.2)), k.glass(), ch[0], p.getLocation().getYaw());
+                case BOLTS -> {
+                    java.util.concurrent.ThreadLocalRandom r = java.util.concurrent.ThreadLocalRandom.current();
+                    d.bolt(at.clone().add(r.nextDouble(-3, 3), 0, r.nextDouble(-3, 3)), Material.WHITE_CONCRETE, k.glass(), 1.4);
+                    d.bolt(at.clone().add(r.nextDouble(-3, 3), 0, r.nextDouble(-3, 3)), Material.WHITE_CONCRETE, k.glass(), 1.4);
+                }
+                case WINGS -> d.wings(p, k.glass(), 26);
+                case METEOR -> d.meteor(ahead, ch[0], ch, k.tile());
+                case DROP -> d.drop(ahead, Material.ANVIL, 1.8f, ch, k.tile());
+                case HALO -> {
+                    ItemStack crown = p.getInventory().getHelmet();
+                    if (crown != null && !crown.getType().isAir()) d.halo(p, crown, k.glass(), 44);
+                }
+                case SONAR -> d.sonar(at, 6.0, 2, k.tile());
+                case SERPENT -> d.serpent(p, ch, 10, 16);
+                case BOOMERANG -> d.boomerang(p, held, 7.0, 9);
+                case WEAPON_RAIN -> d.weaponRain(ahead, held, 7, 3.0);
+                case BLOOM -> d.bloom(at, k.glass(), ch[0]);
+                case SINGULARITY -> d.singularity(at, 40);
+            }
         }
     }
 
@@ -875,5 +952,7 @@ public final class VisualFX implements Listener {
         lastSwing.remove(id);
         lastArc.remove(id);
         lastHit.remove(id);
+        lastCubes.remove(id);
+        lastSig.remove(id);
     }
 }

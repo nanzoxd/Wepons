@@ -297,6 +297,44 @@ public final class WeaponRegistry {
                         "Throw a Vault Omen for 7s that tethers players within 3 blocks.")
                 .two("conjuring", "Ominous Conjuring", 50,
                         "For 10s your hits throw AOE projectiles. More players within 16 blocks raise the spell level.");
+        // ---- Crazy Mythicals ----
+        add("hourglass_dagger", Material.NETHERITE_SWORD, "Hourglass Dagger", "#FCD05C", 9401)
+                .crazy(CrazyLore.HOURGLASS_DAGGER)
+                .aura(Particle.END_ROD)
+                .passive("Speed II.", e(PotionEffectType.SPEED, 1));
+
+        add("great_hammer", Material.MACE, "Great Hammer", "#34B532", 9402)
+                .crazy(CrazyLore.GREAT_HAMMER)
+                .aura(Particle.HAPPY_VILLAGER);
+
+        add("judge", Material.TRIDENT, "The Judge", "#55FFFF", 9403)
+                .crazy(CrazyLore.JUDGE)
+                .reach(0.5)
+                .aura(Particle.ELECTRIC_SPARK);
+
+        add("ghost_shield", Material.SHIELD, "Ghost Shield", "#AAAAAA", 9404)
+                .crazy(CrazyLore.GHOST_SHIELD)
+                .aura(Particle.SOUL);
+
+        add("dragon_cannon", Material.CROSSBOW, "Dragon Cannon", "#AA00AA", 9405)
+                .crazy(CrazyLore.DRAGON_CANNON)
+                .aura(Particle.DRAGON_BREATH);
+
+        add("cleaver", Material.NETHERITE_AXE, "Cleaver", "#D97706", 9406)
+                .crazy(CrazyLore.CLEAVER)
+                .aura(Particle.CRIT);
+
+        add("burgblade", Material.NETHERITE_SWORD, "Burgblade", "#F59E0B", 9407)
+                .crazy(CrazyLore.BURGBLADE)
+                .aura(Particle.FLAME);
+
+        add("thornblade", Material.NETHERITE_SWORD, "Thornblade", "#22C55E", 9408)
+                .crazy(CrazyLore.THORNBLADE)
+                .aura(Particle.HAPPY_VILLAGER);
+
+        add("soulstaff", Material.BLAZE_ROD, "Soul Staff", "#7DD3FC", 9409)
+                .crazy(CrazyLore.SOULSTAFF)
+                .aura(Particle.SOUL_FIRE_FLAME);
     }
 
     private static Material spearMaterial() {
@@ -340,6 +378,11 @@ public final class WeaponRegistry {
         return get(id);
     }
 
+    /** Tooltip style id: wepons:<weapon id>. The pack has wepons:tooltip/<id>_background and _frame sprites for it. */
+    public NamespacedKey tooltipKey(Weapon w) {
+        return new NamespacedKey(plugin, w.id);
+    }
+
     public boolean isWeapon(ItemStack item) {
         return of(item) != null;
     }
@@ -367,10 +410,57 @@ public final class WeaponRegistry {
         return out;
     }
 
+    /** Kings SMP style name gradient per weapon: {from, to}, blended letter by letter. Weapons not listed keep one colour. */
+    private static final Map<String, String[]> GRADIENTS = new LinkedHashMap<>();
+    static {
+        g("weaving", "#D8B4FE", "#6D28D9");        g("resistance", "#E5E7EB", "#4B5563");
+        g("speed", "#A5F3FC", "#0E7490");          g("invisibility", "#FFFFFF", "#6B7280");
+        g("regeneration", "#FF8A8A", "#B91C1C");   g("saturation", "#FFD08A", "#C2410C");
+        g("haste", "#FFF08A", "#D97706");          g("strength", "#FCA5A5", "#7F1D1D");
+        g("dash", "#BAE6FD", "#1D4ED8");           g("voidfang", "#E0D4FF", "#4C1D95");
+        g("stormbreaker", "#FFF7AE", "#CA8A04");   g("freeze", "#CFFFFB", "#0E8F9A");
+        g("scythe", "#F0B4B4", "#7A2E2E");         g("fireshield", "#FFD27A", "#C2260C");
+        g("flightsword", "#D4FFB0", "#15803D");    g("lightningsword", "#FFFFFF", "#EAB308");
+        g("cobwebaxe", "#FFC2FF", "#A21CAF");      g("gravityaxe", "#C8FFFF", "#1E88C8");
+        g("grapplebow", "#F0B0F0", "#7E2A7E");     g("dashmace", "#FFC0A0", "#B91C1C");
+        g("banhammer", "#FF9A9A", "#7F0F0F");      g("smelter", "#FFC86B", "#D4380D");
+        g("lumberjack", "#D9A066", "#4A2E12");     g("impact", "#FF8FA8", "#881337");
+        g("monarchcrown", "#FFF3A0", "#B8860B");   g("fortune_blade", "#FFF0A8", "#B45309");
+        g("flame_blade", "#FFD060", "#B91C1C");    g("bloom_blade", "#FFC2EC", "#9D174D");
+        g("ancient_blade", "#A5F3FC", "#0B4F6C");  g("dragonrend", "#F5B5FF", "#6B21A8");
+        g("tidebreaker", "#93E0FF", "#1E3A8A");    g("wither_symbiote", "#C4B5FD", "#2E1065");
+        g("omen", "#7FF0E4", "#0B5E63");
+        g("hourglass_dagger", "#FFF1A8", "#C28A00");  g("great_hammer", "#9BFF8F", "#1B6B1A");
+        g("judge", "#CFFFFF", "#0E7490");             g("ghost_shield", "#F3F4F6", "#4B5563");
+        g("dragon_cannon", "#F0A0FF", "#5B0F7A");     g("cleaver", "#FBBF24", "#92400E");
+        g("burgblade", "#FDE68A", "#B45309");         g("thornblade", "#BBF7D0", "#166534");
+        g("soulstaff", "#E0F7FF", "#1E6FA8");
+    }
+
+    private static void g(String id, String from, String to) {
+        GRADIENTS.put(id, new String[]{from, to});
+    }
+
+    /** Bold small-caps name, one colour per letter from the weapon's gradient (same font as before). */
     public Component title(Weapon w) {
-        return Component.text(sc(w.name), w.color)
-                .decoration(TextDecoration.BOLD, true)
-                .decoration(TextDecoration.ITALIC, false);
+        String text = sc(w.name);
+        String[] g = GRADIENTS.get(w.id);
+        if (g == null) {
+            return Component.text(text, w.color)
+                    .decoration(TextDecoration.BOLD, true)
+                    .decoration(TextDecoration.ITALIC, false);
+        }
+        TextColor from = TextColor.fromHexString(g[0]);
+        TextColor to = TextColor.fromHexString(g[1]);
+        net.kyori.adventure.text.TextComponent.Builder out = Component.text();
+        int n = text.length();
+        for (int i = 0; i < n; i++) {
+            float t = n > 1 ? i / (float) (n - 1) : 0f;
+            out.append(Component.text(String.valueOf(text.charAt(i)), TextColor.lerp(t, from, to)));
+        }
+        return out.decoration(TextDecoration.BOLD, true)
+                .decoration(TextDecoration.ITALIC, false)
+                .build();
     }
 
     private static final TextColor GOLD = TextColor.fromHexString("#FFD84A");
@@ -431,6 +521,7 @@ public final class WeaponRegistry {
     }
 
     private List<Component> lore(Weapon w, int kills, int level, int prog, Map<Enchantment, Integer> ench) {
+        if (w.rawLore != null) return crazyLore(w);
         List<Component> lore = new ArrayList<>();
 
         if (!w.tagline.isEmpty()) lore.add(sstyled(w.tagline, NamedTextColor.WHITE, true));
@@ -476,6 +567,79 @@ public final class WeaponRegistry {
             for (Map.Entry<Enchantment, Integer> en : ench.entrySet()) lore.add(enchLine(en));
         }
         return lore;
+    }
+
+    private static final net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer LEGACY =
+            net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.builder()
+                    .character('&').hexColors().useUnusualXRepeatedCharacterHexFormat().build();
+
+    private static final java.util.regex.Pattern LEGACY_CODES =
+            java.util.regex.Pattern.compile("&(#[0-9a-fA-F]{6}|[0-9a-fk-orA-FK-OR])");
+
+    /**
+     * Crazy Mythicals lore in the Relique layout: (Mythic), then a "passive" block and an "ability" block with
+     * "- name" lines and wrapped small-caps text. The text itself still comes from CrazyLore (original & lines).
+     */
+    private List<Component> crazyLore(Weapon w) {
+        List<String> passives = new ArrayList<>();
+        List<String> names = new ArrayList<>();
+        List<List<String>> descs = new ArrayList<>();
+        int mode = 0;   // 0 = before any header, 1 = ability block, 2 = passives block
+        for (String raw : w.rawLore) {
+            String line = LEGACY_CODES.matcher(raw).replaceAll("").trim();
+            if (line.isEmpty()) continue;
+            if (line.indexOf('\u2693') >= 0) { mode = 2; continue; }
+            if (line.startsWith("--") && line.endsWith("--") && line.length() > 4) {
+                names.add(line.substring(2, line.length() - 2).trim());
+                descs.add(new ArrayList<>());
+                mode = 1;
+                continue;
+            }
+            boolean bullet = line.startsWith(">");
+            String text = bullet ? line.substring(1).trim() : line;
+            List<String> target = mode == 2 ? passives : (mode == 1 ? descs.get(descs.size() - 1) : null);
+            if (target == null) continue;
+            if (bullet || target.isEmpty() || text.startsWith("-")) target.add(text);
+            else target.set(target.size() - 1, target.get(target.size() - 1) + " " + text);
+        }
+
+        List<Component> lore = new ArrayList<>();
+        lore.add(sstyled("(Mythic)", MYTHIC, false));
+        if (!passives.isEmpty()) {
+            lore.add(Component.empty());
+            lore.add(sstyled("passive", PASSIVE_HEAD, true));
+            for (String t : passives) wrapped(lore, t.startsWith("-") ? "  " : "- ", t, TEXT);
+        }
+        if (!names.isEmpty()) {
+            lore.add(Component.empty());
+            lore.add(sstyled("ability", AQUA, true));
+            for (int i = 0; i < names.size(); i++) {
+                lore.add(sstyled("- " + names.get(i), ABILITY_HEAD, false));
+                for (String t : descs.get(i)) wrapped(lore, "  ", t, TEXT);
+            }
+        }
+        return lore;
+    }
+
+    /** Crazy Mythicals lore: the original & colour-coded lines, never italic. */
+    private static List<Component> rawLore(Weapon w) {
+        List<Component> out = new ArrayList<>();
+        for (String line : w.rawLore) out.add(LEGACY.deserialize(line).decoration(TextDecoration.ITALIC, false));
+        return out;
+    }
+
+    /** Menu helper: small-caps text blended letter by letter from one hex colour to another, bold. */
+    public static Component gradient(String text, String fromHex, String toHex) {
+        String t = sc(text);
+        TextColor from = TextColor.fromHexString(fromHex);
+        TextColor to = TextColor.fromHexString(toHex);
+        net.kyori.adventure.text.TextComponent.Builder out = Component.text();
+        int n = t.length();
+        for (int i = 0; i < n; i++) {
+            float f = n > 1 ? i / (float) (n - 1) : 0f;
+            out.append(Component.text(String.valueOf(t.charAt(i)), TextColor.lerp(f, from, to)));
+        }
+        return out.decoration(TextDecoration.BOLD, true).decoration(TextDecoration.ITALIC, false).build();
     }
 
     /** One enchantment per line in short form, e.g. "Sharp 4". A level at or above the vanilla maximum is gold. */
@@ -640,6 +804,14 @@ public final class WeaponRegistry {
                     AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
             meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(
                     new NamespacedKey(plugin, "sword_speed"), -2.4,
+                    AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+        }
+        if (w.reach > 0) {
+            meta.addAttributeModifier(Attribute.ENTITY_INTERACTION_RANGE, new AttributeModifier(
+                    new NamespacedKey(plugin, "reach"), w.reach,
+                    AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
+            meta.addAttributeModifier(Attribute.BLOCK_INTERACTION_RANGE, new AttributeModifier(
+                    new NamespacedKey(plugin, "block_reach"), w.reach,
                     AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         }
         meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, w.id);

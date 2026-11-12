@@ -15,6 +15,10 @@ ban-hammer-enabled: true
 visuals:
   sweep-density: 0.7
   model-animations: true
+  crit-signature: true   # a critical hit plays the weapon's set piece (max once per 5s)
+  # Sweep arcs only show when a hit lands (not on a miss). The small cube burst on hit is only for these weapons
+  # (weapon ids); an empty list turns it off for everyone.
+  hit-cubes-weapons: [strength, impact]
 
 # Enchantment editor (/wepons enchants): top of the level slider per enchantment. Default = vanilla max
 # (or the weapon's own level if higher). Example: limits: { sharpness: 10 }
@@ -88,3 +92,37 @@ tuning:
   infection-initial-damage: 2.0
   infection-detonation-damage: 8.0
   conjuring-damage: 6.0
+
+# ---------------------------------------------------------------------------
+# Lore frames (Kings SMP style): every weapon has its own tooltip background + frame in the resource pack.
+# A frame the client does not have draws as a purple/black box, so it is only put on a weapon while its holder has
+# the pack. mode:
+#   pack   = only players whose client loaded the server's pack, or who ran /wepons pack on (default, safe)
+#   always = everyone (only if EVERY player has the pack)
+#   off    = vanilla tooltips for everyone
+# ---------------------------------------------------------------------------
+tooltip-styles:
+  mode: pack
+
+# ---------------------------------------------------------------------------
+# /wepons and /holder menu: top row = three tabs, second row = black glass, then the weapons (no pages).
+#   Crazy Mythicals  - the Crazy Mythicals weapons of this plugin
+#   Relique Weapons  - every other weapon of this plugin (the old Kings SMP list)
+#   Kings SMP        - the items of the KingsSMP plugin (needs KingsSMP.jar, max 36 items fit)
+# tab-slots = position in the top row, 0-8 (0 = far left, 4 = middle, 8 = far right).
+# icons = item and optional resource-pack custom-model-data for each tab.
+# ---------------------------------------------------------------------------
+gui:
+  tab-slots:
+    crazy-mythicals: 0
+    relique-weapons: 4
+    kings-smp: 8
+  icons:
+    crazy-mythicals: { material: NETHER_STAR, custom-model-data: 9500 }
+    relique-weapons: { material: NETHERITE_SWORD, custom-model-data: 9201 }
+    kings-smp: { material: NETHERITE_HELMET, custom-model-data: 9124 }
+
+# Kings SMP items (from KingsSMP.jar): false (default) = the items keep the exact lore KingsSMP gives them (same as the
+# Kings SMP plugin page). true = restyle name and lore in the Relique look (small caps, bold name, soft grey text).
+kings-smp:
+  restyle-lore: false

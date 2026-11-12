@@ -31,6 +31,16 @@ public final class Commands implements CommandExecutor, TabCompleter {
             return true;
         }
 
+        // /wepons pack [on|off]: say you have the resource pack installed by hand (turns on the per-weapon lore frames)
+        if (args.length >= 1 && args[0].equalsIgnoreCase("pack")) {
+            Boolean v = args.length >= 2 ? (args[1].equalsIgnoreCase("on") ? Boolean.TRUE
+                    : args[1].equalsIgnoreCase("off") ? Boolean.FALSE : null) : null;
+            boolean on = plugin.packSync().toggleManual(player, v);
+            player.sendMessage(on ? "Weapon lore frames ON (needs the Wepons resource pack)."
+                    : "Weapon lore frames OFF (plain vanilla tooltips).");
+            return true;
+        }
+
         // /wepons enchants [name]: dialog with every enchantment and its limit
         if (args.length >= 1 && (args[0].equalsIgnoreCase("enchants") || args[0].equalsIgnoreCase("enchantments"))) {
             if (!player.hasPermission("wepons.enchants")) {
@@ -65,6 +75,9 @@ public final class Commands implements CommandExecutor, TabCompleter {
         if (!cmd.getName().equalsIgnoreCase("wepons")) return out;
         if (args.length == 1) {
             if ("enchants".startsWith(args[0].toLowerCase(Locale.ROOT))) out.add("enchants");
+            if ("pack".startsWith(args[0].toLowerCase(Locale.ROOT))) out.add("pack");
+        } else if (args.length == 2 && args[0].equalsIgnoreCase("pack")) {
+            out.addAll(PackSync.onOff());
         } else if (args.length == 2 && args[0].equalsIgnoreCase("enchants") && sender instanceof Player p) {
             for (Enchantment e : plugin.enchantDialogs().available(p.getInventory().getItemInMainHand())) {
                 String k = e.getKey().getKey();

@@ -4,6 +4,7 @@ main: com.wepons.Wepons
 api-version: '1.21'
 description: Custom weapons with abilities, a weapon GUI and a holder tracker.
 author: Wepons
+softdepend: [KingsSMP]
 
 commands:
   wepons:

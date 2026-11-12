@@ -10,6 +10,12 @@ Jar: `target/Wepons-1.0.0.jar` -> put in `plugins/`. Remove the Skript file and 
 - `/wepons`  - one GUI with every weapon, no holder names. Click to take one. (op by default: `wepons.use`)
 - `/holder`  - every weapon with its holders, green = online, gray = offline. (everyone by default: `wepons.holder`)
 
+## Menu tabs
+Top row: slot 1 **Crazy Mythicals**, middle slot **Relique Weapons** (all the weapons of this plugin that used to be under Kings SMP),
+slot 9 **Kings SMP** (the items of the KingsSMP plugin, read live from `KingsSMP.jar`, soft-depend). Black glass only in the second row,
+weapons below it (36 slots), no next/previous page. Without KingsSMP installed the Kings SMP tab is empty.
+Tab positions and icons: `gui.tab-slots` and `gui.icons` in `config.yml`. In `/holder` the Kings SMP tab lists online carriers only.
+
 Holders are saved in `plugins/Wepons/holders.yml`, so offline players still show.
 
 ## Keybinds
@@ -36,6 +42,23 @@ Full-sweep weapons swing a ghost copy of their own model; abilities add ice spik
 flying debris and orbiting blades (Berserker Blade), a gravity orbit (Graviton Axe), a lightning column (Thunder Blade) and a flying
 model (Void Fang). All are short-lived display entities. Turn them off with `visuals.model-animations: false`;
 lower the sweep particles with `visuals.sweep-density`. Only some weapons have sweeps: full (9), light (13), none (the rest).
+
+## Model effects (update)
+Ghost weapon models, dash afterimages, orbiting blades and the flying model are hidden from the player who caused them, so
+nothing appears in your own face. Impact Bubble is now a red glass bubble (two spinning cubes) that follows you for its
+duration. Void Pull draws a rope of linked segments to the pulled player. Dashes leave weapon afterimages and speed streaks.
+Ice spikes and bone fangs are tapered stacks; Berserker Blade adds red debris and a blood ring on the ground.
+
+## Signature set pieces
+Every weapon has its own set piece built from display entities (`ModelKits.java` + `DisplayFX.java`): a spider web drawn on the ground
+(Spider Blade, Widow's Axe), rotating shield plates (Guardian Blade), a tornado (Gale Blade), a rift in the air (Rift Blade, Phantom Blade),
+a green helix with embers (Mender's Blade), falling food / gold / leaves / petals (Feast, Gilded, Timber, Blossom), glowing ground
+fissures (Quake and Forge pickaxes), jagged sky bolts (Thunder Blade, Stormbreaker), wings (Sky Blade), a meteor (Comet Mace), a falling
+anvil (Doom Hammer), a floating crown with rays (Monarch Crown), sonar pulses and sculk pillars (Ancient Blade), a block serpent
+(Dragonrend, Tidebreaker), a thrown boomerang scythe (Reaper Scythe), black tendrils (Wither Symbiote), raining weapons (Omen), a
+singularity (Void Fang, Graviton Axe) and a lotus bloom (Blossom Blade). They play when an ability is used, and a critical hit plays the
+set piece too (once per 5s, `visuals.crit-signature`). The sweep arc only shows when a hit lands. A small cube burst on hit is only for the weapons listed in `visuals.hit-cubes-weapons` (default: Berserker Blade and Impact Sword).
+`visuals.model-animations: false` switches all model effects off.
 
 ## Visual effects and sounds
 `VisualFX` gives every weapon its own sweep arc (shape follows where you aim), swing / hit / critical sounds, hit particles,
@@ -66,3 +89,13 @@ Model numbers already match `config.yml`.
   clock, bone). They come from the client's own item atlas, so every player sees them with or without the pack.
   Needs a 1.21.9+ client and server (the pom uses paper-api 1.21.11).
 - All lore text is small caps (vanilla Unicode letters, `WeaponRegistry.sc`).
+
+## Lore style
+Crazy Mythicals lore is rebuilt at runtime in the Relique layout ("(Mythic)", a passive block and an ability block, small caps, wrapped
+text) from the original lines in `CrazyLore.java`. Kings SMP items can get the same look (small caps, bold name, soft grey text) when
+`kings-smp.restyle-lore` is true in `config.yml`. Default is false: Kings SMP items keep the exact lore KingsSMP gives them.
+
+## Resource pack
+`wepons-kings-pack.zip` = wepons-resourcepack + Kings-Weapons-Pack merged (namespaces kings, wepons, cw, cm, altar, pvpqt, minecraft).
+
+`wepons-kings-pack.zip`: the Kings tooltip frames (assets/kings/textures/gui/sprites/tooltip/*_frame.png) are now animated 12-frame strips (a highlight runs around the border, 2 ticks per frame). The original static frames are in Kings-Weapons-Pack.zip.
