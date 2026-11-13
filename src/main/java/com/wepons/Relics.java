@@ -737,24 +737,22 @@ public final class Relics implements Listener {
         Location center = p.getLocation().clone();
         World w = center.getWorld();
         double radius = num("void-radius", 6.0);
-        ItemDisplay clock = display(center.clone().add(0, 1.6, 0), Material.CLOCK, 3f);
+        if (plugin.getConfig().getBoolean("visuals.model-animations", true)) {
+            plugin.customFx().clockCircle(center, radius, 200, CustomFX.VOID_CLOCK, new ItemStack(Material.CLOCK), 3f);
+        }
         w.playSound(center, Sound.BLOCK_BEACON_ACTIVATE, 1f, 0.5f);
         w.playSound(center, Sound.ENTITY_ENDER_DRAGON_AMBIENT, 0.6f, 0.6f);
 
         new BukkitRunnable() {
             int t = 0;
-            float spin = 0;
 
             @Override
             public void run() {
                 if (t >= 200 || !p.isOnline()) {
                     cancel();
-                    clock.remove();
                     w.spawnParticle(Particle.REVERSE_PORTAL, center.clone().add(0, 1, 0), 60, radius / 2, 0.8, radius / 2, 0.3);
                     return;
                 }
-                spin += 18;
-                clock.setRotation(spin, 0);
                 ring(w, center.clone().add(0, 0.15, 0), radius, 48, Particle.REVERSE_PORTAL);
                 if (t % 4 == 0) {
                     ring(w, center.clone().add(0, 1.0, 0), radius * (0.3 + 0.7 * ((t % 40) / 40.0)), 24, Particle.PORTAL);

@@ -66,7 +66,11 @@ public final class VisualFX implements Listener {
     /** Abilities that already have their own model effect (no extra weapon signature on top). */
     private static final java.util.Set<String> OWN_MODEL_FX = java.util.Set.of(
             "frostnova", "ravagerride", "gravitypulse", "berserk", "impactbubble",
-            "voidpull", "voidslash", "lightning", "minetoggle");
+            "voidpull", "voidslash", "lightning", "minetoggle",
+            // Crazy weapons: every effect is drawn by Crazy.java / CustomFX.java
+            "hourglassthrow", "timewarp", "hammerthrow", "hammerleap", "judgethrow", "judgerain",
+            "ghostform", "ghostthrow", "dragonshot", "dragonride", "cleaverswing", "cleaverwagon",
+            "burgershot", "burgify", "thornvines", "thornspike", "soulsand", "soulseye");
 
     public VisualFX(Wepons plugin) {
         this.plugin = plugin;
@@ -372,6 +376,7 @@ public final class VisualFX implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onHit(EntityDamageByEntityEvent e) {
         if (!(e.getDamager() instanceof Player p)) return;
+        if (plugin.crazy().isSilent(p)) return;
         if (e.getCause() != EntityDamageEvent.DamageCause.ENTITY_ATTACK) return;
         if (!(e.getEntity() instanceof LivingEntity v) || v instanceof ArmorStand) return;
 
@@ -634,11 +639,6 @@ public final class VisualFX implements Listener {
                 break;
             case "impactbubble":
                 expandingRing(at.clone().add(0, 0.9, 0), 2.5, 6, s, Particle.END_ROD);
-                if (models) {
-                    plugin.displays().bubble(p, plugin.getConfig().getInt("impact-sword.duration", 15) * 20,
-                            plugin.getConfig().getDouble("impact-sword.radius", 2.5),
-                            Material.RED_STAINED_GLASS, Material.RED_STAINED_GLASS);
-                }
                 snd(world, at, Sound.ENTITY_WARDEN_SONIC_BOOM, 0.22f, 1.7f);
                 break;
             case "royalreveal":
@@ -651,6 +651,24 @@ public final class VisualFX implements Listener {
                 if (models) plugin.displays().boneFangs(at, 4.0, 10);
                 snd(world, at, s.abilS(), vol, s.abilP());
                 break;
+            case "hourglassthrow":
+            case "timewarp":
+            case "hammerthrow":
+            case "hammerleap":
+            case "judgethrow":
+            case "judgerain":
+            case "ghostform":
+            case "ghostthrow":
+            case "dragonshot":
+            case "dragonride":
+            case "cleaverswing":
+            case "cleaverwagon":
+            case "burgershot":
+            case "burgify":
+            case "thornvines":
+            case "thornspike":
+            case "soulsand":
+            case "soulseye":
             case "minetoggle":
                 break;
             default:   // relic and remaining abilities: weapon-coloured charge-up + burst

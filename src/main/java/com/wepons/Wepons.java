@@ -15,6 +15,9 @@ public final class Wepons extends JavaPlugin {
     private DisplayFX displays;
     private PackSync packSync;
     private KingsBridge kings;
+    private CustomFX customFx;
+    private Crazy crazy;
+    private CooldownBar cooldownBar;
 
     @Override
     public void onEnable() {
@@ -26,11 +29,19 @@ public final class Wepons extends JavaPlugin {
         abilities = new Abilities(this);
         relics = new Relics(this);
         displays = new DisplayFX(this);
+        customFx = new CustomFX(this);
+        crazy = new Crazy(this);
         fx = new VisualFX(this);
         upgrades = new Upgrades(this);
         enchantDialogs = new EnchantDialogs(this);
 
         getServer().getPluginManager().registerEvents(abilities, this);
+        getServer().getPluginManager().registerEvents(crazy, this);
+        getServer().getPluginManager().registerEvents(customFx, this);
+        cooldownBar = new CooldownBar(this);
+        getServer().getPluginManager().registerEvents(cooldownBar, this);
+        cooldownBar.start();
+        crazy.start();
         getServer().getPluginManager().registerEvents(relics, this);
         getServer().getPluginManager().registerEvents(new ProtectionListener(this), this);
         getServer().getPluginManager().registerEvents(new GuiListener(this), this);
@@ -59,11 +70,25 @@ public final class Wepons extends JavaPlugin {
     public void onDisable() {
         if (abilities != null) abilities.shutdown();
         if (displays != null) displays.cleanup();
+        if (crazy != null) crazy.shutdown();
+        if (customFx != null) customFx.cleanup();
         if (holders != null) holders.save();
     }
 
     public WeaponRegistry registry() {
         return registry;
+    }
+
+    public Abilities abilities() {
+        return abilities;
+    }
+
+    public Crazy crazy() {
+        return crazy;
+    }
+
+    public CustomFX customFx() {
+        return customFx;
     }
 
     public Relics relics() {

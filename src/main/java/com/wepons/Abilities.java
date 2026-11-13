@@ -62,6 +62,7 @@ public final class Abilities implements Listener {
     private final WeaponRegistry reg;
 
     private final Map<UUID, Map<String, Long>> cooldowns = new HashMap<>();
+    private final Map<UUID, Map<String, Long>> cooldownTotal = new HashMap<>();   // full length in ms, for the durability bar
     private final Map<UUID, Long> lastFire = new HashMap<>();
     private final Map<UUID, Long> frozenUntil = new HashMap<>();
     private final Map<UUID, Long> rootedUntil = new HashMap<>();
@@ -195,12 +196,56 @@ public final class Abilities implements Listener {
         String key = key(w, a);
         cooldowns.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>())
                 .put(key, System.currentTimeMillis() + secs * 1000L);
+        cooldownTotal.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>()).put(key, secs * 1000L);
 
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (!p.isOnline() || remaining(p, key) > 0) return;
             p.sendActionBar(Component.text(a.name() + " ", w.color).append(Component.text("ready", NamedTextColor.GRAY)));
             p.playSound(p.getLocation(), Sound.BLOCK_NOTE_BLOCK_CHIME, 0.6f, 1.6f);
         }, secs * 20L);
+    }
+
+    // ---- cooldown API used by CooldownBar and Crazy ----
+
+    /** 0 = ready, 1 = just used. Shows Ability 2 while sneaking (falls back to Ability 1), otherwise Ability 1. */
+    public double cooldownFraction(Player p, Weapon w, boolean sneaking) {
+        Ability one = null;
+        Ability two = null;
+        for (Ability a : w.abilities) {
+            if (a.trigger() == Trigger.ONE && one == null) one = a;
+            if (a.trigger() == Trigger.TWO && two == null) two = a;
+        }
+        Ability shown = sneaking && two != null ? two : one;
+        if (shown == null) shown = two;
+        if (shown == null) return 0;
+        String key = key(w, shown);
+        long left = remaining(p, key);
+        if (left <= 0) return 0;
+        Map<String, Long> totals = cooldownTotal.get(p.getUniqueId());
+        Long total = totals == null ? null : totals.get(key);
+        if (total == null || total <= 0) total = shown.cooldown() * 1000L;
+        if (total <= 0) return 0;
+        return Math.min(1.0, left / (double) total);
+    }
+
+    public long remainingMs(Player p, String weaponId, String abilityKey) {
+        return remaining(p, weaponId + ":" + abilityKey);
+    }
+
+    /** Starts a cooldown by key (for passives that are not fired with F). */
+    public void startCooldownMs(Player p, String weaponId, String abilityKey, int seconds) {
+        if (seconds <= 0) return;
+        String key = weaponId + ":" + abilityKey;
+        cooldowns.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>()).put(key, System.currentTimeMillis() + seconds * 1000L);
+        cooldownTotal.computeIfAbsent(p.getUniqueId(), k -> new HashMap<>()).put(key, seconds * 1000L);
+    }
+
+    public void resetCooldown(Player p, String weaponId, String abilityKey) {
+        String key = weaponId + ":" + abilityKey;
+        Map<String, Long> map = cooldowns.get(p.getUniqueId());
+        if (map != null) map.remove(key);
+        Map<String, Long> totals = cooldownTotal.get(p.getUniqueId());
+        if (totals != null) totals.remove(key);
     }
 
     private void warnCooldown(Player p, Weapon w, Ability a, long ms) {
@@ -215,6 +260,7 @@ public final class Abilities implements Listener {
         lastFire.put(p.getUniqueId(), now);
 
         if (plugin.relics().preempt(p, w, a)) return;
+        if (plugin.crazy().preempt(p, w, a)) return;
         if (lockedByKills(p, w, a, true)) return;
 
         long left = remaining(p, key(w, a));
@@ -272,7 +318,7 @@ public final class Abilities implements Listener {
             case "ravagerride" -> ravagerRide(p);
             case "royalreveal" -> royalReveal(p);
             case "impactbubble" -> impactBubble(p);
-            default -> plugin.relics().run(p, w, a);
+            default -> w.category.equals("crazy") ? plugin.crazy().run(p, w, a) : plugin.relics().run(p, w, a);
         };
     }
 
@@ -762,6 +808,7 @@ public final class Abilities implements Listener {
         }
 
         if (!(e.getDamager() instanceof Player attacker)) return;
+        if (plugin.crazy().isSilent(attacker)) return;   // ability damage from Crazy.java never re-triggers procs
 
         // Monarch Crown: 2x damage while worn
         Weapon crown = wornWeapon(attacker);
@@ -792,6 +839,15 @@ public final class Abilities implements Listener {
         plugin.relics().onHit(attacker, w, victim, e);
     }
 
+    /** Crazy Mythicals on-hit passives run for every weapon in hand, even when the weapon has no HIT ability. */
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onCrazyHit(EntityDamageByEntityEvent e) {
+        if (!(e.getDamager() instanceof Player attacker) || !(e.getEntity() instanceof LivingEntity victim)) return;
+        if (plugin.crazy().isSilent(attacker)) return;
+        Weapon w = reg.of(attacker.getInventory().getItemInMainHand());
+        if (w != null && w.category.equals("crazy")) plugin.crazy().onHit(attacker, w, victim, e);
+    }
+
     private void rebuke(Player blocker, Player attacker) {
         if (blocker.getLocation().distance(attacker.getLocation()) > 6) return;
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
@@ -813,6 +869,11 @@ public final class Abilities implements Listener {
         b.setType(Material.COBWEB);
         v.getWorld().playSound(v.getLocation(), Sound.BLOCK_COBWEB_PLACE, 0.7f, 1f);
         v.getWorld().spawnParticle(Particle.WITCH, v.getLocation().add(0, 1, 0), 15, 0.3, 0.5, 0.3, 0.02);
+        // dark web structure drawn with display entities, tied to this exact block (removed when it is broken or expires)
+        if (plugin.getConfig().getBoolean("visuals.model-animations", true)) {
+            plugin.customFx().cobweb(b, 80);
+            plugin.displays().web(v.getLocation(), 3.0, Material.BLACK_CONCRETE);
+        }
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
             if (b.getType() == Material.COBWEB) b.setType(Material.AIR);
         }, 80L);
@@ -862,7 +923,7 @@ public final class Abilities implements Listener {
     }
 
     /** Pins the target in place for the given ticks: no walking, no jumping, no pearl or chorus escapes. */
-    private void root(LivingEntity v, int ticks) {
+    void root(LivingEntity v, int ticks) {
         if (v instanceof Player pl) {
             rootedUntil.put(pl.getUniqueId(), System.currentTimeMillis() + ticks * 50L);
         } else if (v instanceof org.bukkit.entity.Mob m && m.hasAI()) {
@@ -954,14 +1015,22 @@ public final class Abilities implements Listener {
     // Impact Sword
     // ==================================================================
 
-    /** A bubble around you for a while; players who touch it are pushed away. */
+    /**
+     * Impact Sword: a glass box surrounds you for the configured time. While it stands you cannot be hurt
+     * (Crazy.protect, checked on every damage event) but you can still attack. Players who touch the box are
+     * pushed away. The box and the protection use the same end time, and both end if you die or leave.
+     */
     private boolean impactBubble(Player p) {
         final int duration = plugin.getConfig().getInt("impact-sword.duration", 15) * 20;
-        final double radius = plugin.getConfig().getDouble("impact-sword.radius", 2.5);
+        final double half = plugin.getConfig().getDouble("impact-sword.radius", 2.5);
         final double horizontal = plugin.getConfig().getDouble("impact-sword.knockback-horizontal", 1.0);
         final double vertical = plugin.getConfig().getDouble("impact-sword.knockback-vertical", 0.3);
 
+        plugin.crazy().protect(p, duration * 50L);
         p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, 1f, 1.4f);
+        if (plugin.getConfig().getBoolean("visuals.model-animations", true)) {
+            plugin.customFx().glassBox(p, duration, (float) (half * 1.4));
+        }
         new BukkitRunnable() {
             int t = 0;
             final Map<UUID, Integer> lastPush = new HashMap<>();
@@ -969,26 +1038,16 @@ public final class Abilities implements Listener {
             @Override
             public void run() {
                 if (!p.isOnline() || p.isDead() || t >= duration) {
+                    plugin.crazy().unprotect(p);
                     if (p.isOnline()) p.getWorld().playSound(p.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 0.8f, 1.4f);
                     cancel();
                     return;
                 }
                 Location center = p.getLocation().add(0, 1, 0);
                 World w = p.getWorld();
-
-                // the bubble: points on a sphere shell
                 ThreadLocalRandom rnd = ThreadLocalRandom.current();
-                for (int i = 0; i < 18; i++) {
-                    Vector v = new Vector(rnd.nextGaussian(), rnd.nextGaussian(), rnd.nextGaussian());
-                    if (v.lengthSquared() < 1.0E-6) continue;
-                    v.normalize().multiply(radius);
-                    w.spawnParticle(Particle.DUST, center.clone().add(v), 1, 0, 0, 0, 0,
-                            new Particle.DustOptions(Color.AQUA, 1.0f));
-                }
-                if (t % 10 == 0) w.spawnParticle(Particle.END_ROD, center, 6, radius * 0.5, radius * 0.5, radius * 0.5, 0.01);
-
-                // knock back anyone who touches it
-                for (Player o : nearbyEnemies(p, center, radius)) {
+                // anyone who reaches the box is pushed away
+                for (Player o : nearbyEnemies(p, center, half * 0.7 + 0.8)) {
                     Integer last = lastPush.get(o.getUniqueId());
                     if (last != null && t - last < 8) continue;
                     lastPush.put(o.getUniqueId(), t);

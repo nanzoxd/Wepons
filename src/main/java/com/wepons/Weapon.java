@@ -69,7 +69,8 @@ public final class Weapon {
     public final Map<String, Unlock> unlocks = new LinkedHashMap<>();  // ability key -> kills needed
     public Upgrade upgrade;  // null = this weapon has no Level II
     public String category = "relique"; // menu tab: "relique" (Relique Weapons) or "crazy" (Crazy Mythicals). The "kings" tab is filled by the KingsSMP plugin
-    public java.util.List<String> rawLore;  // Crazy Mythicals: lore written with & colour codes
+    public double atkDamage = Double.NaN;   // custom attack damage modifier (NaN = vanilla default)
+    public double atkSpeed = Double.NaN;    // custom attack speed modifier
     public double reach;                    // extra block/entity reach (The Judge: +0.5 = 3.5 blocks)
 
     public Weapon(String id, Material material, String name, String hex, int cmd) {
@@ -82,10 +83,16 @@ public final class Weapon {
         this.kind = m.substring(m.lastIndexOf('_') + 1);
     }
 
-    /** Crazy Mythicals weapon: own menu tab and own lore (legacy & codes). */
-    public Weapon crazy(String[] lore) {
+    /** Crazy Mythicals weapon: own menu tab. Its abilities are registered like any other weapon's. */
+    public Weapon crazy() {
         this.category = "crazy";
-        this.rawLore = java.util.List.of(lore);
+        return this;
+    }
+
+    /** Explicit attack damage / speed attribute modifiers (replaces the vanilla defaults of the base item). */
+    public Weapon stats(double damageModifier, double speedModifier) {
+        this.atkDamage = damageModifier;
+        this.atkSpeed = speedModifier;
         return this;
     }
 

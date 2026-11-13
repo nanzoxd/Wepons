@@ -99,3 +99,11 @@ text) from the original lines in `CrazyLore.java`. Kings SMP items can get the s
 `wepons-kings-pack.zip` = wepons-resourcepack + Kings-Weapons-Pack merged (namespaces kings, wepons, cw, cm, altar, pvpqt, minecraft).
 
 `wepons-kings-pack.zip`: the Kings tooltip frames (assets/kings/textures/gui/sprites/tooltip/*_frame.png) are now animated 12-frame strips (a highlight runs around the border, 2 ticks per frame). The original static frames are in Kings-Weapons-Pack.zip.
+
+## Overhaul notes (latest)
+- **Lore**: every weapon's lore is rebuilt from one layout (type line, stats, ability entries with cooldowns, passives), plain text so it renders the same everywhere.
+- **Cooldown bar**: every weapon shows its ability cooldown on the durability bar (hidden when ready). Sneaking shows the Shift+F ability's cooldown. Real durability loss is blocked.
+- **Crazy Mythicals**: all nine weapons have working F / Shift+F abilities and passives (`Crazy.java`); numbers live under `crazy:` in `config.yml`.
+- **Display-entity effects** (`CustomFX.java`): Spider Sword cobweb display (synced to the real web, removed when it breaks), Dragonrend animated clock circle, Impact Sword glass box (player is invulnerable inside but can still attack; box and protection end together).
+- All spawned displays are tracked and removed on expiry, death, quit and plugin disable.
+- Model orientation constants in `CustomFX`/`Crazy` are untested guesses; tune them in game.

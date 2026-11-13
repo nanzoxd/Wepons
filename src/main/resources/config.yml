@@ -126,3 +126,50 @@ gui:
 # Kings SMP plugin page). true = restyle name and lore in the Relique look (small caps, bold name, soft grey text).
 kings-smp:
   restyle-lore: false
+
+# ---------------------------------------------------------------------------
+# Crazy Mythicals - ability numbers (cooldowns in seconds, durations in seconds, ranges in blocks)
+# F = offhand-swap key, Shift + F = sneak + offhand-swap key.
+# ---------------------------------------------------------------------------
+crazy:
+  hourglass:
+    cooldown-throw: 60     # F: throw the hourglass, freezes the target
+    cooldown-warp: 60      # Shift+F: time warp
+    freeze-seconds: 3
+    speed-amplifier: 2
+    warp-seconds: 15
+  hammer:
+    cooldown-throw: 20     # F: Hammer Throw (boomerang)
+    cooldown-leap: 40      # Shift+F: Leap Slam
+  judge:
+    cooldown-throw: 30     # F: Judgement
+    cooldown-rain: 30      # Shift+F: Trident Rain
+    reach: 3.5
+  ghost:
+    cooldown-form: 40      # F: Ghost Form
+    cooldown-throw: 40     # Shift+F: Shield Throw
+    form-seconds: 10
+  dragon:
+    cooldown-shot: 60      # F: Dragon Head
+    cooldown-ride: 60      # Shift+F: Dragon Ride
+    cooldown-ball: 5       # passive dragon ball
+    ride-seconds: 5
+    control-seconds: 30
+    explosion-breaks-blocks: false
+    disabled-items: []
+  cleaver:
+    cooldown-swing: 60
+    cooldown-wagon: 30
+    stun-seconds: 20
+    passive-stun-seconds: 10
+  burgblade:
+    cooldown-shot: 45
+    cooldown-burgify: 30
+    cooldown-eat: 20
+    burgify-seconds: 5
+  thornblade:
+    cooldown-vines: 6
+    cooldown-spike: 50
+  soulstaff:
+    cooldown-sand: 50
+    cooldown-eye: 90

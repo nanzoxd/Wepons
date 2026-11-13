@@ -297,44 +297,112 @@ public final class WeaponRegistry {
                         "Throw a Vault Omen for 7s that tethers players within 3 blocks.")
                 .two("conjuring", "Ominous Conjuring", 50,
                         "For 10s your hits throw AOE projectiles. More players within 16 blocks raise the spell level.");
-        // ---- Crazy Mythicals ----
+        // ---- Crazy Mythicals (numbers come from config.yml: crazy.*) ----
         add("hourglass_dagger", Material.NETHERITE_SWORD, "Hourglass Dagger", "#FCD05C", 9401)
-                .crazy(CrazyLore.HOURGLASS_DAGGER)
+                .crazy()
+                .tag("Time bends around the blade.")
                 .aura(Particle.END_ROD)
-                .passive("Speed II.", e(PotionEffectType.SPEED, 1));
+                .passive("Speed II while held.", e(PotionEffectType.SPEED, 1))
+                .one("hourglassthrow", "Hourglass Throw", cc("hourglass.cooldown-throw", 60),
+                        "Throw an hourglass that freezes nearby players in time for " + cc("hourglass.freeze-seconds", 3) + "s.")
+                .two("timewarp", "Time Warp", cc("hourglass.cooldown-warp", 60),
+                        "Speed up time for yourself for " + cc("hourglass.warp-seconds", 15) + "s: Haste X and Speed III.");
 
-        add("great_hammer", Material.MACE, "Great Hammer", "#34B532", 9402)
-                .crazy(CrazyLore.GREAT_HAMMER)
-                .aura(Particle.HAPPY_VILLAGER);
+        add("great_hammer", plugin.getConfig().getBoolean("crazy.hammer.mace", true) ? Material.MACE : Material.NETHERITE_SWORD,
+                "Great Hammer", "#34B532", 9402)
+                .crazy()
+                .tag("Heavy as a mountain, fast as a sword.")
+                .stats(5.0, -2.4)
+                .aura(Particle.HAPPY_VILLAGER)
+                .proc("hammerspeed", "Light Swing", Trigger.PASSIVE, 0, "Swings as fast as a sword.")
+                .proc("hammerstun", "Shield Breaker", Trigger.PASSIVE, 0, "Stuns shields.")
+                .one("hammerthrow", "Hammer Throw", cc("hammer.cooldown-throw", 20),
+                        "Throw your hammer, dealing damage and pulling whoever it hits. If it misses, it returns and the cooldown resets.")
+                .two("hammerleap", "Leap Slam", cc("hammer.cooldown-leap", 40),
+                        "Leap forward behind spinning hammers. Landing creates an impact that damages nearby enemies.");
 
         add("judge", Material.TRIDENT, "The Judge", "#55FFFF", 9403)
-                .crazy(CrazyLore.JUDGE)
-                .reach(0.5)
-                .aura(Particle.ELECTRIC_SPARK);
+                .crazy()
+                .tag("Every verdict is final.")
+                .reach(cc("judge.reach", 3.5) - 3.0)
+                .aura(Particle.ELECTRIC_SPARK)
+                .proc("judgereach", "Long Arm", Trigger.PASSIVE, 0, cc("judge.reach", 3.5) + " blocks reach.")
+                .one("judgethrow", "Judgement", cc("judge.cooldown-throw", 30),
+                        "Throw your weapon, dealing massive damage and stunning shields.")
+                .two("judgerain", "Trident Rain", cc("judge.cooldown-rain", 30),
+                        "Summon a rain of tridents above your head that deal high damage.");
 
         add("ghost_shield", Material.SHIELD, "Ghost Shield", "#AAAAAA", 9404)
-                .crazy(CrazyLore.GHOST_SHIELD)
-                .aura(Particle.SOUL);
+                .crazy()
+                .tag("Neither here nor there.")
+                .aura(Particle.SOUL)
+                .proc("ghostpassive", "Phase", Trigger.PASSIVE, 0, "Every 10th hit you receive turns you into a ghost for 1s.")
+                .one("ghostform", "Ghost Form", cc("ghost.cooldown-form", 40),
+                        "Become immortal for " + cc("ghost.form-seconds", 10) + "s.")
+                .two("ghostthrow", "Shield Throw", cc("ghost.cooldown-throw", 40),
+                        "Throw your shield, dealing damage and blinding your enemy.");
 
         add("dragon_cannon", Material.CROSSBOW, "Dragon Cannon", "#AA00AA", 9405)
-                .crazy(CrazyLore.DRAGON_CANNON)
-                .aura(Particle.DRAGON_BREATH);
+                .crazy()
+                .tag("The dragon bites back.")
+                .aura(Particle.DRAGON_BREATH)
+                .proc("dragonball", "Dragon Ball", Trigger.PASSIVE, cc("dragon.cooldown-ball", 5),
+                        "Right-click to shoot a dragon ball dealing massive damage and giving blindness for 3s.")
+                .one("dragonshot", "Dragon Head", cc("dragon.cooldown-shot", 60),
+                        "Shoot a dragon head. It bites players and stuns their utilities. Biting a mob makes it your ally for "
+                                + cc("dragon.control-seconds", 30) + "s. A miss or the ground causes a massive explosion.")
+                .two("dragonride", "Dragon Ride", cc("dragon.cooldown-ride", 60),
+                        "Ride a dragon for " + cc("dragon.ride-seconds", 5) + "s.");
 
         add("cleaver", Material.NETHERITE_AXE, "Cleaver", "#D97706", 9406)
-                .crazy(CrazyLore.CLEAVER)
-                .aura(Particle.CRIT);
+                .crazy()
+                .tag("Cuts through everything, even shields.")
+                .aura(Particle.CRIT)
+                .proc("cleaverstun", "Shield Crusher", Trigger.PASSIVE, 0, "Shield disables last " + cc("cleaver.passive-stun-seconds", 10) + "s.")
+                .one("cleaverswing", "Cleave", cc("cleaver.cooldown-swing", 60),
+                        "Swing your axe, dealing massive damage and stunning shields for " + cc("cleaver.stun-seconds", 20) + "s.")
+                .two("cleaverwagon", "Wagon Shot", cc("cleaver.cooldown-wagon", 30),
+                        "Shoot a wagon that explodes on impact with walls. Use it again to explode it by hand. A player it hits gets damaged and carried on its back.");
 
         add("burgblade", Material.NETHERITE_SWORD, "Burgblade", "#F59E0B", 9407)
-                .crazy(CrazyLore.BURGBLADE)
-                .aura(Particle.FLAME);
+                .crazy()
+                .tag("Served hot.")
+                .aura(Particle.FLAME)
+                .proc("burgereat", "Burger Feast", Trigger.PASSIVE, cc("burgblade.cooldown-eat", 20),
+                        "Right-click to eat the burger on your sword: fills hunger and saturation, gives Resistance II, Regeneration II and Absorption II, but Slowness.")
+                .one("burgershot", "Burger Shot", cc("burgblade.cooldown-shot", 45),
+                        "Shoot a burger that deals 3.5 hearts, gives Slowness III and removes half of the target's hunger.")
+                .two("burgify", "Burgification", cc("burgblade.cooldown-burgify", 30),
+                        "Turn your enemy into a burger for " + cc("burgblade.burgify-seconds", 5) + "s. Each hit on the burger deals 1-10 HP, removes all saturation and one hunger bar.");
 
         add("thornblade", Material.NETHERITE_SWORD, "Thornblade", "#22C55E", 9408)
-                .crazy(CrazyLore.THORNBLADE)
-                .aura(Particle.HAPPY_VILLAGER);
+                .crazy()
+                .tag("Nature bites back.")
+                .aura(Particle.HAPPY_VILLAGER)
+                .proc("thornpassive", "Overgrowth", Trigger.PASSIVE, 0, "Every 5th hit you take charges your next hit for 1.5 extra hearts.")
+                .one("thornvines", "Grappling Vines", cc("thornblade.cooldown-vines", 6),
+                        "Shoot vines like a grappling hook. An enemy is pulled to you, a block pulls you. Sneak to let go.")
+                .two("thornspike", "Thorn Spike", cc("thornblade.cooldown-spike", 50),
+                        "Spawn a spike where you look. It poisons and slows whoever touches it.");
 
         add("soulstaff", Material.BLAZE_ROD, "Soul Staff", "#7DD3FC", 9409)
-                .crazy(CrazyLore.SOULSTAFF)
-                .aura(Particle.SOUL_FIRE_FLAME);
+                .crazy()
+                .tag("It remembers every soul.")
+                .aura(Particle.SOUL_FIRE_FLAME)
+                .proc("soulultimate", "Ultimate: The Curse", Trigger.PASSIVE, 0,
+                        "Skeleton kills and soul abilities charge your bar. At 5 souls, Shift + Left-click to arm it, then hit someone to curse them: Slowness for 90s, permanent Darkness, no Absorption for 20s.")
+                .one("soulsand", "Soul Sand", cc("soulstaff.cooldown-sand", 50),
+                        "Shoot soul sand that steals your enemy's health.")
+                .two("soulseye", "Evil Eye", cc("soulstaff.cooldown-eye", 90),
+                        "Spawn an evil eye above you that shoots 3 beams at the closest enemy. Each beam steals 1 XP, 1 golden apple and 1 cobweb and deals 1 heart.");
+    }
+
+    private int cc(String path, int def) {
+        return plugin.getConfig().getInt("crazy." + path, def);
+    }
+
+    private double cc(String path, double def) {
+        return plugin.getConfig().getDouble("crazy." + path, def);
     }
 
     private static Material spearMaterial() {
@@ -443,11 +511,11 @@ public final class WeaponRegistry {
 
     /** Bold small-caps name, one colour per letter from the weapon's gradient (same font as before). */
     public Component title(Weapon w) {
-        String text = sc(w.name);
+        String text = w.name;
         String[] g = GRADIENTS.get(w.id);
         if (g == null) {
             return Component.text(text, w.color)
-                    .decoration(TextDecoration.BOLD, true)
+                    .decoration(TextDecoration.BOLD, false)
                     .decoration(TextDecoration.ITALIC, false);
         }
         TextColor from = TextColor.fromHexString(g[0]);
@@ -458,7 +526,7 @@ public final class WeaponRegistry {
             float t = n > 1 ? i / (float) (n - 1) : 0f;
             out.append(Component.text(String.valueOf(text.charAt(i)), TextColor.lerp(t, from, to)));
         }
-        return out.decoration(TextDecoration.BOLD, true)
+        return out.decoration(TextDecoration.BOLD, false)
                 .decoration(TextDecoration.ITALIC, false)
                 .build();
     }
@@ -520,112 +588,52 @@ public final class WeaponRegistry {
         return lore(w, kills, level, prog, w.enchants);
     }
 
+    private static final TextColor DIM = TextColor.fromHexString("#6B7280");
+    private static final TextColor BODY = TextColor.fromHexString("#F3F4F6");
+
+    /**
+     * One lore layout for every weapon (same as the reference tooltips): tagline, tier line, then one block per
+     * ability: "Name - Cooldown: 30s", what it does, and the key to press. Passives are "Name - Passive".
+     * Plain text only (no small caps, no sprites), never italic, so it renders the same on every client.
+     */
     private List<Component> lore(Weapon w, int kills, int level, int prog, Map<Enchantment, Integer> ench) {
-        if (w.rawLore != null) return crazyLore(w);
         List<Component> lore = new ArrayList<>();
 
-        if (!w.tagline.isEmpty()) lore.add(sstyled(w.tagline, NamedTextColor.WHITE, true));
-        lore.add(sstyled("(Mythic)", MYTHIC, false));
-        if (kills >= 0) {
-            lore.add(sstyled("Kills: " + kills, NamedTextColor.RED, false));
-        }
+        if (!w.tagline.isEmpty()) lore.add(styled(w.tagline, NamedTextColor.WHITE, false));
+        lore.add(styled("Mythic " + w.kind.substring(0, 1).toUpperCase() + w.kind.substring(1).toLowerCase(), DIM, false));
+        if (kills >= 0) lore.add(styled("Kills: " + kills, NamedTextColor.RED, false));
         if (w.upgrade != null) {
             if (level >= 2) {
-                lore.add(sstyled("Level II", GOLD, true));
+                lore.add(styled("Level II", GOLD, true));
                 int pct = (int) Math.round((1.0 - cooldownMultiplier()) * 100);
                 wrapped(lore, "", "Abilities recharge " + pct + "% faster. Stronger effects.", TEXT);
             } else {
                 int need = upgradeAmount(w);
                 int shown = w.upgrade.type() == Weapon.UpType.KILLS ? Math.max(0, kills) : prog;
-                lore.add(sstyled("Level I", TEXT, false));
+                lore.add(styled("Level I", TEXT, false));
                 wrapped(lore, "Task: ", w.upgrade.desc() + " (" + Math.min(shown, need) + "/" + need + ")", GOLD);
             }
         }
 
-        boolean hasPassives = w.abilities.stream().anyMatch(a -> !a.trigger().isPower());
-        boolean hasAbilities = w.abilities.stream().anyMatch(a -> a.trigger().isPower());
-
-        if (hasPassives) {
-            lore.add(Component.empty());
-            lore.add(sstyled("passive", PASSIVE_HEAD, true));
-            for (Weapon.Ability a : w.abilities) {
-                if (!a.trigger().isPower()) entry(lore, w, a, kills);
-            }
+        // abilities first (they are what the player presses), then passives
+        for (Weapon.Ability a : w.abilities) {
+            if (a.trigger().isPower()) entry(lore, w, a, kills);
         }
-
-        if (hasAbilities) {
-            lore.add(Component.empty());
-            lore.add(sstyled("ability", AQUA, true));
-            for (Weapon.Ability a : w.abilities) {
-                if (a.trigger().isPower()) entry(lore, w, a, kills);
-            }
+        for (Weapon.Ability a : w.abilities) {
+            if (!a.trigger().isPower()) entry(lore, w, a, kills);
         }
 
         if (!ench.isEmpty()) {
             lore.add(Component.empty());
-            lore.add(sstyled("enchants", ENCH_HEAD, true));
+            lore.add(styled("Enchants", ENCH_HEAD, false));
             for (Map.Entry<Enchantment, Integer> en : ench.entrySet()) lore.add(enchLine(en));
         }
-        return lore;
-    }
-
-    private static final net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer LEGACY =
-            net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.builder()
-                    .character('&').hexColors().useUnusualXRepeatedCharacterHexFormat().build();
-
-    private static final java.util.regex.Pattern LEGACY_CODES =
-            java.util.regex.Pattern.compile("&(#[0-9a-fA-F]{6}|[0-9a-fk-orA-FK-OR])");
-
-    /**
-     * Crazy Mythicals lore in the Relique layout: (Mythic), then a "passive" block and an "ability" block with
-     * "- name" lines and wrapped small-caps text. The text itself still comes from CrazyLore (original & lines).
-     */
-    private List<Component> crazyLore(Weapon w) {
-        List<String> passives = new ArrayList<>();
-        List<String> names = new ArrayList<>();
-        List<List<String>> descs = new ArrayList<>();
-        int mode = 0;   // 0 = before any header, 1 = ability block, 2 = passives block
-        for (String raw : w.rawLore) {
-            String line = LEGACY_CODES.matcher(raw).replaceAll("").trim();
-            if (line.isEmpty()) continue;
-            if (line.indexOf('\u2693') >= 0) { mode = 2; continue; }
-            if (line.startsWith("--") && line.endsWith("--") && line.length() > 4) {
-                names.add(line.substring(2, line.length() - 2).trim());
-                descs.add(new ArrayList<>());
-                mode = 1;
-                continue;
-            }
-            boolean bullet = line.startsWith(">");
-            String text = bullet ? line.substring(1).trim() : line;
-            List<String> target = mode == 2 ? passives : (mode == 1 ? descs.get(descs.size() - 1) : null);
-            if (target == null) continue;
-            if (bullet || target.isEmpty() || text.startsWith("-")) target.add(text);
-            else target.set(target.size() - 1, target.get(target.size() - 1) + " " + text);
-        }
-
-        List<Component> lore = new ArrayList<>();
-        lore.add(sstyled("(Mythic)", MYTHIC, false));
-        if (!passives.isEmpty()) {
+        boolean hasCooldown = w.abilities.stream().anyMatch(a -> a.trigger().isPower() && a.cooldown() > 0);
+        if (hasCooldown) {
             lore.add(Component.empty());
-            lore.add(sstyled("passive", PASSIVE_HEAD, true));
-            for (String t : passives) wrapped(lore, t.startsWith("-") ? "  " : "- ", t, TEXT);
-        }
-        if (!names.isEmpty()) {
-            lore.add(Component.empty());
-            lore.add(sstyled("ability", AQUA, true));
-            for (int i = 0; i < names.size(); i++) {
-                lore.add(sstyled("- " + names.get(i), ABILITY_HEAD, false));
-                for (String t : descs.get(i)) wrapped(lore, "  ", t, TEXT);
-            }
+            lore.add(styled("The durability bar shows the cooldown.", DIM, false));
         }
         return lore;
-    }
-
-    /** Crazy Mythicals lore: the original & colour-coded lines, never italic. */
-    private static List<Component> rawLore(Weapon w) {
-        List<Component> out = new ArrayList<>();
-        for (String line : w.rawLore) out.add(LEGACY.deserialize(line).decoration(TextDecoration.ITALIC, false));
-        return out;
     }
 
     /** Menu helper: small-caps text blended letter by letter from one hex colour to another, bold. */
@@ -720,37 +728,49 @@ public final class WeaponRegistry {
         return out;
     }
 
-    /** One passive or ability: name (with its key), a short description, cooldown and unlock info. */
+    /** One ability or passive block: header line, wrapped description, key hint, unlock info. */
     private void entry(List<Component> lore, Weapon w, Weapon.Ability a, int kills) {
+        lore.add(Component.empty());
         boolean plain = a.name().equals("Passive") || a.name().equals("Carry");
+        Component head;
         if (plain) {
-            wrapped(lore, "- ", a.desc(), TEXT);
+            head = styled("Passive", w.color, false);
         } else {
-            String head = a.trigger().isPower() ? a.name() + " [" + a.trigger().key + "]" : a.name();
-            lore.add(sstyled("- " + head, ABILITY_HEAD, false));
-            wrapped(lore, "  ", a.desc(), TEXT);
+            head = styled(a.name(), w.color, false).append(styled(" - ", DIM, false));
+            if (a.trigger().isPower()) {
+                head = head.append(a.cooldown() > 0
+                        ? styled("Cooldown: ", TEXT, false).append(styled(a.cooldown() + "s", NamedTextColor.RED, false))
+                        : styled("No cooldown", TEXT, false));
+            } else if (a.trigger() == Trigger.HIT) {
+                head = head.append(styled("On Hit", TEXT, false));
+            } else if (a.trigger() == Trigger.BLOCK) {
+                head = head.append(styled("On Block", TEXT, false));
+            } else {
+                head = head.append(styled("Passive", TEXT, false));
+            }
+            if (!a.trigger().isPower() && a.cooldown() > 0) {
+                head = head.append(styled(" (" + a.cooldown() + "s)", DIM, false));
+            }
         }
-        if (a.trigger().isPower()) {
-            String cd = a.cooldown() > 0 ? a.cooldown() + "s" : "none";
-            lore.add(sstyled("  Cooldown: " + cd, GOLD, false));
-        } else if (a.cooldown() > 0) {
-            lore.add(sstyled("  Cooldown: " + a.cooldown() + "s", GOLD, false));
-        }
+        lore.add(head);
+        wrapped(lore, "", a.desc(), BODY);
+        if (a.trigger() == Trigger.ONE) lore.add(styled("Swap Hands (F)", DIM, false));
+        if (a.trigger() == Trigger.TWO) lore.add(styled("Sneak + Swap Hands (F)", DIM, false));
 
         Weapon.Unlock u = w.unlocks.get(a.key());
         if (u != null && kills >= 0) {
             int need = unlockKills(u);
-            if (kills >= need) lore.add(sstyled("  Unlocked", NamedTextColor.GREEN, false));
-            else lore.add(sstyled("  Unlock: " + need + (u.streak() ? " kills in a row" : " kills"), NamedTextColor.RED, false));
+            if (kills >= need) lore.add(styled("Unlocked", NamedTextColor.GREEN, false));
+            else lore.add(styled("Unlock: " + need + (u.streak() ? " kills in a row" : " kills"), NamedTextColor.RED, false));
         }
     }
 
-    /** Wraps a description onto several short lore lines; the first gets the prefix, the rest are indented. */
+    /** Wraps a description onto several short lore lines (46 characters). */
     private static void wrapped(List<Component> lore, String prefix, String text, TextColor color) {
         String indent = " ".repeat(prefix.length());
         boolean first = true;
-        for (String part : wrap(text, 40)) {
-            lore.add(sstyled((first ? prefix : (prefix.equals("- ") ? "  " : indent)) + part, color, false));
+        for (String part : wrap(text, 46)) {
+            lore.add(styled((first ? prefix : indent) + part, color, false));
             first = false;
         }
     }
@@ -793,17 +813,19 @@ public final class WeaponRegistry {
         ItemMeta meta = item.getItemMeta();
         meta.displayName(title(w));
         meta.lore(lore(w, isProgressive(w) ? 0 : -1, 1, 0));
-        meta.setUnbreakable(true);
+        prepareBar(item, meta);
         applyModel(meta, w);
         if (w.worn) wornNoArmorLayer(meta);
         meta.addItemFlags(ItemFlag.HIDE_ENCHANTS, ItemFlag.HIDE_ATTRIBUTES, ItemFlag.HIDE_UNBREAKABLE);
         w.enchants.forEach((ench, lvl) -> meta.addEnchant(ench, lvl, true));
-        if (w.swordStats) {
+        if (w.swordStats || !Double.isNaN(w.atkDamage)) {
+            double dmg = w.swordStats ? 7.0 : w.atkDamage;
+            double spd = w.swordStats ? -2.4 : w.atkSpeed;
             meta.addAttributeModifier(Attribute.ATTACK_DAMAGE, new AttributeModifier(
-                    new NamespacedKey(plugin, "sword_damage"), 7.0,
+                    new NamespacedKey(plugin, "sword_damage"), dmg,
                     AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
             meta.addAttributeModifier(Attribute.ATTACK_SPEED, new AttributeModifier(
-                    new NamespacedKey(plugin, "sword_speed"), -2.4,
+                    new NamespacedKey(plugin, "sword_speed"), spd,
                     AttributeModifier.Operation.ADD_NUMBER, EquipmentSlotGroup.MAINHAND));
         }
         if (w.reach > 0) {
@@ -817,6 +839,21 @@ public final class WeaponRegistry {
         meta.getPersistentDataContainer().set(key, PersistentDataType.STRING, w.id);
         item.setItemMeta(meta);
         return item;
+    }
+
+    /** Durability range used for the cooldown bar (see CooldownBar). */
+    public static final int BAR_MAX = 260;
+
+    /**
+     * Makes the item show a durability bar: not unbreakable, a max durability of BAR_MAX and a stack size of 1.
+     * Real wear is blocked by CooldownBar, so the bar can only ever show a cooldown. Also used to fix old items.
+     */
+    public static void prepareBar(ItemStack item, ItemMeta meta) {
+        meta.setUnbreakable(false);
+        if (item.getType().getMaxStackSize() > 1) meta.setMaxStackSize(1);
+        if (meta instanceof org.bukkit.inventory.meta.Damageable d) {
+            if (!d.hasMaxDamage() || d.getMaxDamage() != BAR_MAX) d.setMaxDamage(BAR_MAX);
+        }
     }
 
     /** Display-only icon (no weapon tag) with custom lore, used by /holder. */
